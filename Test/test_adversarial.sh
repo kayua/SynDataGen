@@ -1,0 +1,22 @@
+pipenv run python main.py \
+	-i Datasets/binaries/kronodroid_emulador-balanced.csv \
+	-c RandomForest \
+	--model_type adversarial  \
+	--number_samples_per_class 0:10,1:10 \
+	--adversarial_number_epochs 5 \
+	--number_k_folds 2 \
+	--adversarial_batch_size 256 \
+	--adversarial_dense_layer_sizes_d 2048 \
+	--adversarial_dense_layer_sizes_g 4096 \
+	--adversarial_dropout_decay_rate_d 0.4 \
+	--adversarial_dropout_decay_rate_g 0.2 \
+	--adversarial_initializer_deviation 0.02 \
+	--adversarial_initializer_mean 0 \
+	--adversarial_latent_dimension 128 \
+	--adversarial_latent_stander_deviation 1 \
+	--adversarial_training_algorithm Adam \
+	--adversarial_activation_function LeakyReLU \
+	--adversarial_latent_mean_distribution  0.0 \
+  	--adversarial_loss_generator binary_crossentropy \
+  	--adversarial_loss_discriminator  binary_crossentropy \
+  	--adversarial_smoothing_rate   0.15
