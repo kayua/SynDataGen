@@ -1,0 +1,2 @@
+class OutputFileError(Exception):
+    pass

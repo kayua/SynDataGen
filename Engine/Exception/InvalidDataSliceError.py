@@ -1,0 +1,2 @@
+class InvalidDataSliceError(Exception):
+    pass

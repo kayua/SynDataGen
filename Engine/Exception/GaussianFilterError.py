@@ -1,0 +1,2 @@
+class GaussianFilterError(Exception):
+    pass

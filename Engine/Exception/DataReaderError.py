@@ -1,0 +1,2 @@
+class DataReaderError(Exception):
+    pass
