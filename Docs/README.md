@@ -1,4 +1,4 @@
-# Synthetic Ocean AI - Usage Examples
+# MalDataGen - Usage Examples
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
