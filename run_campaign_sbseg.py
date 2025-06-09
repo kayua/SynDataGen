@@ -76,10 +76,11 @@ except ImportError as error:
 
 
 DEFAULT_VERBOSITY_LEVEL = logging.INFO  # Logging verbosity level for the experiment
-NUM_EPOCHS = 100 # Default number of training epochs (overridden per campaign)
+NUM_EPOCHS = 1  # Default number of training epochs (overridden per campaign)
 TIME_FORMAT = '%Y-%m-%d_%H:%M:%S'  # Format for timestamps in logs
-SAMPLES = '0:1000,1:1000'  # Default number of samples per class in string format (class:count)
-DEFAULT_CAMPAIGN = "wasserstein wasserstein_gp variational autoencoder adversarial latent_diffusion denoising_diffusion tvae ctgan copula".split()  # Active campaign types
+SAMPLES = '0:2000,1:2000'  # Default number of samples per class in string format (class:count)
+DEFAULT_CAMPAIGN = "wasserstein wasserstein_gp variational autoencoder adversarial latent_diffusion denoising_diffusion ctgan tvae copula".split()  # Active campaign types
+
 
 # Default classifiers to evaluate models with (space-separated string in list)
 DEFAULT_CLASSIFIER = ['RandomForest SupportVectorMachine KNN DecisionTree NaiveBayes GradientBoosting StochasticGradientDescent']
@@ -117,7 +118,7 @@ campaigns_available['teste'] = {
     'model_type': ['adversarial'],
     'number_samples_per_class': ['0:100,1:100'],
     'number_k_folds': [2],
-    'adversarial_number_epochs': [100],
+    'adversarial_number_epochs': [NUM_EPOCHS],
     'save_data': [SAVE_DATA],
     'adversarial_batch_size': [256],
     'adversarial_dense_layer_sizes_d': [512],
@@ -142,7 +143,7 @@ campaigns_available['adversarial'] = {
     'model_type': ['adversarial'],
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
-    'adversarial_number_epochs': [100],
+    'adversarial_number_epochs': [NUM_EPOCHS],
     'save_data': [SAVE_DATA],
     'adversarial_batch_size': [64],
     'adversarial_dense_layer_sizes_g': ['256'],
@@ -168,14 +169,14 @@ campaigns_available['autoencoder'] = {
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
     'save_data': [SAVE_DATA],
-    'autoencoder_number_epochs': [100],
+    'autoencoder_number_epochs': [NUM_EPOCHS],
     'autoencoder_latent_dimension': [128],
-    'autoencoder_activation_function': ['Relu'],
+    'autoencoder_activation_function': ['elu'],
     'autoencoder_dropout_decay_rate_encoder': [0.10],
     'autoencoder_dropout_decay_rate_decoder': [0.10],
     'autoencoder_dense_layer_sizes_encoder': ['128 128'],
     'autoencoder_dense_layer_sizes_decoder': ['128 128'],
-    'autoencoder_batch_size': [128],
+    'autoencoder_batch_size': [256],
     'autoencoder_number_classes': [2],
     'autoencoder_loss_function': ["binary_crossentropy"],
     'autoencoder_momentum': [0.8],
@@ -183,7 +184,7 @@ campaigns_available['autoencoder'] = {
     'autoencoder_initializer_mean': [0.0],
     'autoencoder_initializer_deviation': [0.125],
     'autoencoder_latent_mean_distribution': [0.5],
-    'autoencoder_latent_stander_deviation': [0.125],
+    'autoencoder_latent_stander_deviation': [0.500],
 }
 
 # === Variational Autoencoder Campaign ===
@@ -193,7 +194,7 @@ campaigns_available['variational'] = {
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
     'save_data': [SAVE_DATA],
-    'variational_autoencoder_number_epochs': [100],
+    'variational_autoencoder_number_epochs': [NUM_EPOCHS],
     'variational_autoencoder_latent_dimension': [68],
     'variational_autoencoder_training_algorithm': ['Adam'],
     'variational_autoencoder_activation_function': ['relu'],
@@ -220,8 +221,9 @@ campaigns_available['quantized'] = {
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
     'save_data': [SAVE_DATA],
-    'quantized_vae_number_epochs': [1],
+    'quantized_vae_number_epochs': [NUM_EPOCHS],
 }
+
 
 
 # === Wasserstein GAN Campaign ===
@@ -230,20 +232,19 @@ campaigns_available['wasserstein'] = {
     'model_type': ['wasserstein'],
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
-    'wasserstein_number_epochs': [100],
+    'wasserstein_number_epochs': [NUM_EPOCHS],
     'save_data': [SAVE_DATA],
     'wasserstein_latent_dimension': [32],
     'wasserstein_training_algorithm': ['Adam'],
-    'wasserstein_activation_function': ['leakyrelu'],
-    'wasserstein_dropout_decay_rate_g': [0.2],
-    'wasserstein_dropout_decay_rate_d': [0.2],
+    'wasserstein_activation_function': ['elu'],
+    'wasserstein_dropout_decay_rate_g': [0.0],
+    'wasserstein_dropout_decay_rate_d': [0.0],
     'wasserstein_dense_layer_sizes_generator': [256],
     'wasserstein_dense_layer_sizes_discriminator': [64],
     'wasserstein_batch_size': [64],
     'wasserstein_number_classes': [2],
-    'wasserstein_loss_function': ['binary_crossentropy'],
     'wasserstein_momentum': [0.8],
-    'wasserstein_last_activation_layer': ['sigmoid'],
+    'wasserstein_last_activation_layer': ['linear'],
     'wasserstein_initializer_mean': [0.0],
     'wasserstein_initializer_deviation': [0.125],
     'wasserstein_optimizer_generator_learning_rate': [0.001],
@@ -263,18 +264,17 @@ campaigns_available['wasserstein_gp'] = {
     'model_type': ['wasserstein_gp'],
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
-    'wasserstein_gp_number_epochs': [100],
+    'wasserstein_gp_number_epochs': [NUM_EPOCHS],
     'save_data': [SAVE_DATA],
     'wasserstein_gp_latent_dimension': [32],
     'wasserstein_gp_training_algorithm': ['Adam'],
     'wasserstein_gp_activation_function': ['leakyrelu'],
-    'wasserstein_gp_dropout_decay_rate_g': [0.2],
-    'wasserstein_gp_dropout_decay_rate_d': [0.2],
+    'wasserstein_gp_dropout_decay_rate_g': [0.0],
+    'wasserstein_gp_dropout_decay_rate_d': [0.0],
     'wasserstein_gp_dense_layer_sizes_generator': [256],
     'wasserstein_gp_dense_layer_sizes_discriminator': [64],
     'wasserstein_gp_batch_size': [64],
     'wasserstein_gp_number_classes': [2],
-    'wasserstein_gp_loss_function': ['binary_crossentropy'],
     'wasserstein_gp_momentum': [0.8],
     'wasserstein_gp_last_activation_layer': ['sigmoid'],
     'wasserstein_gp_initializer_mean': [0.0],
@@ -298,36 +298,36 @@ campaigns_available['latent_diffusion'] = {
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
     'save_data': [SAVE_DATA],
-    'latent_diffusion_unet_epochs': [100],
-    'latent_diffusion_autoencoder_epochs': [100],
+    'latent_diffusion_unet_epochs': [NUM_EPOCHS],
+    'latent_diffusion_autoencoder_epochs': [NUM_EPOCHS],
     'latent_diffusion_unet_last_layer_activation': ['tanh'],
-    'latent_diffusion_latent_dimension': [64],
+    'latent_diffusion_latent_dimension': [32],
     'latent_diffusion_unet_num_embedding_channels': [1],
     'latent_diffusion_unet_channels_per_level': ['1 2 4'],
-    'latent_diffusion_unet_batch_size': [128],
+    'latent_diffusion_unet_batch_size': [256],
     'latent_diffusion_unet_attention_mode': ['False True True'],
     'latent_diffusion_unet_num_residual_blocks': [2],
     'latent_diffusion_unet_group_normalization': [1],
-    'latent_diffusion_unet_intermediary_activation': ['ELU'],
+    'latent_diffusion_unet_intermediary_activation': ['elu'],
     'latent_diffusion_unet_intermediary_activation_alpha': [0.05],
     'latent_diffusion_gaussian_beta_start': [1e-4],
     'latent_diffusion_gaussian_beta_end': [0.02],
-    'latent_diffusion_gaussian_time_steps': [1000],
+    'latent_diffusion_gaussian_time_steps': [300],
     'latent_diffusion_gaussian_clip_min': [-1.0],
     'latent_diffusion_gaussian_clip_max': [1.0],
     'latent_diffusion_autoencoder_loss': ['mse'],
-    'latent_diffusion_autoencoder_encoder_filters': ['320 160'],
-    'latent_diffusion_autoencoder_decoder_filters': ['160 320'],
+    'latent_diffusion_autoencoder_encoder_filters': ['64 32'],
+    'latent_diffusion_autoencoder_decoder_filters': ['32 64'],
     'latent_diffusion_autoencoder_last_layer_activation': ['sigmoid'],
-    'latent_diffusion_autoencoder_latent_dimension': [64],
+    'latent_diffusion_autoencoder_latent_dimension': [32],
     'latent_diffusion_autoencoder_batch_size_create_embedding': [128],
     'latent_diffusion_autoencoder_batch_size_training': [128],
-    'latent_diffusion_autoencoder_intermediary_activation_function': ['ELU'],
+    'latent_diffusion_autoencoder_intermediary_activation_function': ['elu'],
     'latent_diffusion_autoencoder_intermediary_activation_alpha': [0.05],
     'latent_diffusion_autoencoder_activation_output_encoder': ['sigmoid'],
     'latent_diffusion_margin': [0.5],
     'latent_diffusion_ema': [0.999],
-    'latent_diffusion_time_steps': [1000],
+    'latent_diffusion_time_steps': [300],
 }
 
 
@@ -338,9 +338,8 @@ campaigns_available['denoising_diffusion'] = {
     'number_samples_per_class': [SAMPLES],
     'number_k_folds': [DEFAULT_K_FOLDS],
     'save_data': [SAVE_DATA],
-    'denoising_diffusion_unet_epochs': [100],
+    'denoising_diffusion_unet_epochs': [NUM_EPOCHS],
     'denoising_diffusion_unet_last_layer_activation': ['tanh'],
-    'denoising_diffusion_latent_dimension': [64],
     'denoising_diffusion_unet_num_embedding_channels': [1],
     'denoising_diffusion_unet_channels_per_level': ['1 2 4'],
     'denoising_diffusion_unet_batch_size': [128],
@@ -351,12 +350,12 @@ campaigns_available['denoising_diffusion'] = {
     'denoising_diffusion_unet_intermediary_activation_alpha': [0.05],
     'denoising_diffusion_gaussian_beta_start': [1e-4],
     'denoising_diffusion_gaussian_beta_end': [0.02],
-    'denoising_diffusion_gaussian_time_steps': [10],
+    'denoising_diffusion_gaussian_time_steps': [300],
     'denoising_diffusion_gaussian_clip_min': [-1.0],
     'denoising_diffusion_gaussian_clip_max': [1.0],
     'denoising_diffusion_margin': [0.5],
     'denoising_diffusion_ema': [0.999],
-    'denoising_diffusion_time_steps': [1]
+    'denoising_diffusion_time_steps': [300]
 }
 
 # === Copula-based Synthetic Generation ===
