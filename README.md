@@ -17,9 +17,9 @@
 </div>
 
 
-# 🌊 Synthetic Ocean AI - v.1.0.0 (Jellyfish 🪼)
+# 🌊 MalDataGen - v.1.0.0 (Jellyfish 🪼)
 
-Synthetic Ocean AI (SynDataGen) is an advanced Python framework for generating and evaluating synthetic tabular datasets using modern generative models, including diffusion and adversarial architectures. Designed for researchers and practitioners, it provides reproducible pipelines, fine-grained control over model configuration, and integrated evaluation metrics for realistic data synthesis.
+MalDataGen is an advanced Python framework for generating and evaluating synthetic tabular datasets using modern generative models, including diffusion and adversarial architectures. Designed for researchers and practitioners, it provides reproducible pipelines, fine-grained control over model configuration, and integrated evaluation metrics for realistic data synthesis.
 
 ---
 
