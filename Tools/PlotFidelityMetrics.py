@@ -46,10 +46,11 @@ except ImportError as error:
 
 DEFAULT_WIDTH_BAR = 0.2
 DEFAULT_FONT_SIZE = 12
-DEFAULT_TITLE_COMPARATIVE_PLOTS = "Comparativo entre dados sintéticos e reais (Média)"
-DEFAULT_PLOT_FIDELITY_METRICS_LABELS = ['Similaridade de Cossenos',
-                                        'Erro Médio Quadrático',
-                                        'Máxima Discrepância Média']
+DEFAULT_TITLE_COMPARATIVE_PLOTS = "Comparison between Synthetic and Real Data (Average)"
+DEFAULT_PLOT_FIDELITY_METRICS_LABELS = ['Cosine Similarity',
+                                        'Mean Squared Error',
+                                        'Maximum Mean Discrepancy']
+
 DEFAULT_COLOR_MAP_REGRESSIVE = ['#9467bd', '#8c564b', '#e377c2', '#7f7f7f']
 
 
@@ -97,8 +98,8 @@ class PlotFidelityMetrics:
                 print(f"Metric: {metric} Exception: {e}")
 
         y_label_dictionary = dict(
-            title=f'Média {len(mean_squared_error_list)} dobras', tickmode='linear', tick0=0.0, dtick=0.1,
-            gridcolor='black', gridwidth=.05
+            title=f'Average over {len(mean_squared_error_list)} folds', tickmode='linear', tick0=0.0, dtick=0.1,
+            gridcolor='black', gridwidth=0.05
         )
 
         new_plot_bars.update_layout(
@@ -129,13 +130,14 @@ class PlotFidelityMetrics:
 
         json_data = {
             "title": self.plot_title_axis_x,
-            "y_axis_title": f'Média {len(mean_squared_error_list)} dobras',
+            "y_axis_title": f'Average over {len(mean_squared_error_list)} folds',
             "metrics": metrics_data
         }
 
         with open(json_filename, 'w') as f:
             json.dump(json_data, f, indent=4)
-        print(f"Dados do gráfico exportados para {json_filename}.")
+        print(f"Chart data exported to {json_filename}.")
+
 
     def set_labels_bar_metrics(self, labels_bar_metrics):
         self.labels_plot_fidelity_metrics = labels_bar_metrics

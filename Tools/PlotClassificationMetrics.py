@@ -45,7 +45,7 @@ except ImportError as error:
 DEFAULT_WIDTH_BAR = 0.2
 DEFAULT_FONT_SIZE = 12
 DEFAULT_MATRIX_CONFUSION_ROTATION_LEGENDS = 45
-DEFAULT_PLOT_CLASSIFIER_METRICS_LABELS = ['Acurácia', 'Precisão', 'Recall', 'F1-Score']
+DEFAULT_PLOT_CLASSIFIER_METRICS_LABELS = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
 
 DEFAULT_COLOR_MAP = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
                      '#17becf']
@@ -81,10 +81,11 @@ class PlotClassificationMetrics:
         color_map = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
 
         if type_of_classifier == "TR_As":
-            metrics_name = ['Acurácia-TR_As', 'Precisão-TR_As', 'Recall-TR_As', 'F1-Score-TR_As']
+            metrics_name = ['Accuracy (TR-AS)', 'Precision (TR-AS)', 'Recall (TR-AS)', 'F1-Score (TR-AS)']
 
         else:
-            metrics_name = ['Acurácia-TS_Ar', 'Precisão-TS_Ar', 'Recall-TS_Ar', 'F1-Score-TS_Ar']
+            metrics_name = ['Accuracy (TS-AR)', 'Precision (TS-AR)', 'Recall (TS-AR)', 'F1-Score (TS-AR)']
+
 
         for metric, metric_values, color in zip(metrics_name, list_all_metrics, color_map):
 
@@ -107,13 +108,13 @@ class PlotClassificationMetrics:
                 print(f"Metric {metric} error: {e}")
 
         y_label_dictionary = dict(
-            title=f'Média {len(accuracy_list)} dobras', tickmode='linear', tick0=0.0, dtick=0.1,
-            gridcolor='black', gridwidth=.05
+            title=f'Average over {len(accuracy_list)} folds', tickmode='linear', tick0=0.0, dtick=0.1,
+            gridcolor='black', gridwidth=0.05
         )
 
         new_plot_bars.update_layout(
             barmode='group', title=plot_title, yaxis=y_label_dictionary,
-            xaxis=dict(title=f'Desempenho com {classifier_type}'), showlegend=False,
+            xaxis=dict(title=f'Performance with {classifier_type}'), showlegend=False,
             plot_bgcolor='white'
         )
 

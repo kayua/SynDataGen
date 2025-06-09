@@ -44,12 +44,12 @@ except ImportError as error:
     print(error)
     sys.exit(-1)
 
-DEFAULT_LOSS_CURVE_LEGEND_GENERATOR = "Gerador"
-DEFAULT_LOSS_CURVE_LEGEND_DISCRIMINATOR = "Discriminador"
-DEFAULT_LOSS_CURVE_LEGEND_ITERATIONS = "Interações (Épocas)"
-DEFAULT_LOSS_CURVE_TITLE_PLOT = "Perda do Gerador e Discriminador"
-DEFAULT_LOSS_CURVE_LEGEND_LOSS = "Perda"
-DEFAULT_LOSS_CURVE_LEGEND_NAME = "Legenda"
+DEFAULT_LOSS_CURVE_LEGEND_GENERATOR = "Generator"
+DEFAULT_LOSS_CURVE_LEGEND_DISCRIMINATOR = "Discriminator"
+DEFAULT_LOSS_CURVE_LEGEND_ITERATIONS = "Iterations (Epochs)"
+DEFAULT_LOSS_CURVE_TITLE_PLOT = "Generator and Discriminator Loss"
+DEFAULT_LOSS_CURVE_LEGEND_LOSS = "Loss"
+DEFAULT_LOSS_CURVE_LEGEND_NAME = "Legend"
 DEFAULT_LOSS_CURVE_PREFIX_FILE = "curve_training_error"
 
 class PlotCurveLoss:

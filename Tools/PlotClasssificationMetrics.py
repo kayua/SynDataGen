@@ -331,8 +331,10 @@ class PlotClassificationMetrics(Plot):
             # Add value annotations based on visualization option
             if self.option in ['mean', 'mean_std']:
                 self._draw_mean(ax, bars)
+
             if self.option in ['std', 'mean_std']:
                 self._draw_std(ax, bars, std)
+
     def _format_axes(self, ax: plt.Axes, clf: str, x: numpy.ndarray) -> None:
         """
         Apply consistent formatting to plot axes.

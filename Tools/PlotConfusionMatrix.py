@@ -54,9 +54,9 @@ except ImportError as error:
 DEFAULT_CONFUSION_MATRIX_DIRECTORY ='confusion_matrices'
 
 DEFAULT_TITLE=''
-DEFAULT_X_LABEL='Rótulo Predito'
-DEFAULT_Y_LABEL='Rótulo Verdadeiro'
-DEFAULT_TICKS_LABELS=['Maligno', 'Benigno']
+DEFAULT_X_LABEL = 'Predicted Label'
+DEFAULT_Y_LABEL = 'True Label'
+DEFAULT_TICKS_LABELS = ['True', 'False']
 
 DEFAULT_SUB_TITLE_FONT_SIZE=16
 DEFAULT_TITLE_FONT_SIZE=12

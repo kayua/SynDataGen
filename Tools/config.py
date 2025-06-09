@@ -36,8 +36,7 @@ PLOTS_DIRECTORY = 'Plots'
 
 GROUPS = [
     "TS-TR",
-    "TR-TS",
-    "TR-TR"
+    "TR-TS"
 ]
 
 METRICS = [
