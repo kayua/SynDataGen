@@ -129,8 +129,7 @@ python3 run_campaign_sbseg.py -l integration --ci
 | `Latent Diffusion`    | Diffusion model operating in compressed latent space                        | High-resolution generation, efficiency      |
 | `VQ-VAE`              | Discrete latent-space via quantization                                      | Categorical and mixed-type data             |
 | `SMOTE`               | Synthetic Minority Over-sampling Technique (interpolation-based)            | Class imbalance in tabular data             |
-| `Copy/Paste`          | Simple sample replication baseline                                          | Sanity checks, baseline comparison          |
-| `Random`              | Adds discrete noise to existing samples                                     | Data augmentation, robustness testing       |
+
 
 ### 📦 Third-Party Supported (SDV)
 | Model       | Description                                                                 | Use Case                              |
