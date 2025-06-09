@@ -1955,9 +1955,10 @@ class WassersteinInstance:
                                                                 file_name_generator=self._wasserstein_file_name_generator,
                                                                 models_saved_path=self._wasserstein_path_output_models,
                                                                 latent_mean_distribution=self._wasserstein_latent_mean_distribution,
-                                                                latent_stander_deviation=self._wasserstein_latent_stander_deviation,
+                                                                latent_standard_deviation=self._wasserstein_latent_stander_deviation,
                                                                 smoothing_rate=self._wasserstein_smoothing_rate,
-                                                                discriminator_steps=self._wasserstein_discriminator_steps)
+                                                                discriminator_steps=self._wasserstein_discriminator_steps,
+                                                                clip_value=0.01)
 
     def _training_wasserstein_model(self, input_shape, arguments, x_real_samples, y_real_samples):
         """
@@ -3240,7 +3241,7 @@ class DenoisingDiffusionInstance:
             x_real_samples,
             to_categorical(y_real_samples, num_classes=self._number_samples_per_class["number_classes"]),
             epochs=self._denoising_diffusion_unet_epochs, batch_size=self._denoising_diffusion_unet_batch_size,
-            callbacks=callbacks_list, verbose=2)
+            callbacks=callbacks_list)
 
     # Getter and setter for diffusion_unet_last_layer_activation
     @property
