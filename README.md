@@ -24,7 +24,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 ---
 
 ## 📚 Table of Contents
-
+ 
 - [📖 Overview](#overview)
 - [Stamps considered](#stamps)
 - [🚀 Getting Started](#getting-started)
@@ -36,6 +36,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 - [🧪 Example Workflows](#examples)
 - [🔧 Technologies Used](#technologies)
 - [🔗 References](#references)
+  
 
 ---
 
@@ -49,6 +50,10 @@ Synthetic Ocean is a modular and extensible synthetic data generation library fo
 - Provide publication-ready metrics and visualizations
 
 It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integration with academic pipelines.
+
+
+The following link showcases a video of a demonstration of the tool
+
 ---
 
 
