@@ -96,6 +96,9 @@ class AdaDelta(Optimizer):
         Zeiler, M. D. (2012). ADADELTA: An Adaptive Learning Rate Method.
         *arXiv preprint arXiv:1212.5701*.
         URL: https://arxiv.org/abs/1212.5701
+        # This implementation is adapted from the original Keras source code,
+        # available at: https://github.com/keras-team/keras
+        # It has been modified for customization and integration into this specific context.
 
     Example:
         >>> python3

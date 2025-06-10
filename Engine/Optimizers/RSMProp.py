@@ -118,6 +118,9 @@ class RMSProp(Optimizer):
         - "Divide the gradient by a running average of its recent magnitude" - Hinton's original RMSprop proposal
         - "Neural Networks for Machine Learning" course (Coursera) by Geoffrey Hinton
 
+# This implementation is adapted from the original Keras source code,
+# available at: https://github.com/keras-team/keras
+# It has been modified for customization and integration into this specific context.
 
     Example:
         >>> python3

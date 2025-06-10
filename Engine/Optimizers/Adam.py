@@ -91,6 +91,9 @@ class Adam(Optimizer):
         Kingma, D.P., & Ba, J. (2014). Adam: A Method for Stochastic Optimization.
         *International Conference on Learning Representations (ICLR)*.
         URL: https://arxiv.org/abs/1412.6980
+        # This implementation is adapted from the original Keras source code,
+        # available at: https://github.com/keras-team/keras
+        # It has been modified for customization and integration into this specific context.
 
     Example:
         >>> python3

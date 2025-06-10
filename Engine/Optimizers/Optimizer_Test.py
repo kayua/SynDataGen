@@ -11,6 +11,9 @@ from SGD import SGD
 
 class MockArguments:
     """Mock arguments class to initialize Optimizers"""
+# This implementation is adapted from the original Keras source code,
+# available at: https://github.com/keras-team/keras
+# It has been modified for customization and integration into this specific context.
 
     def __init__(self):
         # Adam parameters

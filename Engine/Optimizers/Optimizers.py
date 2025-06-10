@@ -141,6 +141,10 @@ class Optimizers:
             L2 regularization strength for FTRL.
         @ftrl_optimizer_l2_shrinkage_regularization_strength (float):
             L2 shrinkage regularization strength for FTRL.
+            
+# This implementation is adapted from the original Keras source code,
+# available at: https://github.com/keras-team/keras
+# It has been modified for customization and integration into this specific context.
 
     """
     def __init__(self, arguments):

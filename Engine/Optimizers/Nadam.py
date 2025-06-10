@@ -104,6 +104,9 @@ class NADAM(Optimizer):
             Optional number of gradient accumulation steps. Default is None.
         name:
             The name of the optimizer. Default is 'nadam'.
+# This implementation is adapted from the original Keras source code,
+# available at: https://github.com/keras-team/keras
+# It has been modified for customization and integration into this specific context.
 
     Example:
 

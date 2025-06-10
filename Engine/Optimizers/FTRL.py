@@ -44,6 +44,9 @@ except ImportError as error:
     sys.exit(-1)
 
 class FTRL(Optimizer):
+# This implementation is adapted from the original Keras source code,
+# available at: https://github.com/keras-team/keras
+# It has been modified for customization and integration into this specific context.
 
     def __init__(self,
                  learning_rate=0.001,
