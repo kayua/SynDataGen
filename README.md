@@ -84,8 +84,8 @@ We provide instructions for the installation, execution, and reproduction of the
 
 ```bash
 pip install virtualenv
-python3 -m venv ~/Python3venv/SyntheticOcean
-source ~/Python3venv/SyntheticOcean/bin/activate
+python3 -m venv ~/Python3venv/MalDataGen
+source ~/Python3venv/MalDataGen/bin/activate
 ```
 
 ---
