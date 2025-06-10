@@ -55,7 +55,7 @@ It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integra
 ## 📖 Video <a name="Video"></a>
 The following link showcases a video of a demonstration of the tool: https://drive.google.com/file/d/1sbPZ1x5Np6zolhFvCBWoMzqNqrthlUe3/view?usp=sharing
 
-if that doesn't work we have a backup on 
+if that doesn't work we have a backup on: https://youtu.be/t-AZtsLJUlQ
 
 ---
 
