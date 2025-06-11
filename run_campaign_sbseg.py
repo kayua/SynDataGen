@@ -113,6 +113,11 @@ datasets = [
 
 campaigns_available = {}
 
+
+
+
+
+
 campaigns_available['teste'] = {
     'classifier': DEFAULT_CLASSIFIER,
     'model_type': ['adversarial'],
@@ -621,9 +626,9 @@ def main():
     if arguments.campaign is None:
         campaigns_chosen = campaigns_available.keys()
 
-    elif arguments.campaign == ['sbseg25']:
-        campaigns_chosen = ['ctgan', 'tvae','copula','latent_diffusion','wasserstein_gp','variational','autoencoder', 'adversarial']
-         
+    elif arguments.campaign == ['sf']:
+        campaigns_chosen = ['variational','adversarial']
+                  
     else:
 
         campaigns_list = arguments.campaign
@@ -683,7 +688,7 @@ def main():
     logging.info("##########################################")
     time_start_evaluation = datetime.datetime.now()
 
-
+    results_grouping=[]
     count_dataset = 1
 
     for d in datasets_chosen:
@@ -745,8 +750,18 @@ def main():
                 time_start_experiment = datetime.datetime.now()
                 logging.info("\t\t\t\t\tBegin Plot: {}".format(time_start_experiment.strftime(TIME_FORMAT)))
                 cmd = command_plot
-                cmd += " --results {}/EvaluationResults/Results.json".format(output_dir_run)
-
+                if list(campaigns_chosen)[-1] == c:
+                    # Create list of non-empty strings
+                    results_grouping.append("".join([output_dir_run,"/EvaluationResults/Results.json"]))
+                    results_str = [
+                        str(item) for item in results_grouping  
+                        if str(item).strip()  # This filters out empty/whitespace-only strings
+                    ]
+                    cmd += " --results {}".format(",".join(results_str))
+                    #results_grouping.append(output_dir_run)
+                else: 
+                    cmd += " --results {}".format("".join([output_dir_run,"/EvaluationResults/Results.json"]))
+                    results_grouping.append("".join([output_dir_run,"/EvaluationResults/Results.json"]))
                 cmd += " --title {}".format(plot_title)
 
                 cmd += " --folds {}".format(combination['number_k_folds'])

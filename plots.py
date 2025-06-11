@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__author__ = 'Synthetic Ocean AI - Team'
-__email__ = 'syntheticoceanai@gmail.com'
-__version__ = '{1}.{0}.{1}'
-__initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
-__credits__ = ['Synthetic Ocean AI']
-
+ 
+ 
 from Tools.ClusteringVisualizer import ClusteringVisualizer
 
 # MIT License
@@ -35,8 +30,9 @@ from Tools.ClusteringVisualizer import ClusteringVisualizer
 try:
     import sys
     import argparse
-
+    from typing import Dict
     from dataclasses import dataclass
+    import json
 
     from Engine.DataIO.CSVLoader import CSVDataProcessor
     from Tools.PlotHeatMap import HeatmapComparator
@@ -45,9 +41,9 @@ try:
 
     from Tools.PlotDistanceMetrics import PlotDistanceMetrics
     from Tools.PlotConfusionMatrix import PlotConfusionMatrix
-
+    import Tools.config as config
     from Tools.PlotClasssificationMetrics import PlotClassificationMetrics
-
+    from plots_svm import plot_heatmap_svm
 except ImportError as error:
     print(error)
     sys.exit(-1)
@@ -84,7 +80,8 @@ Implementation Notes:
 - Supports both interactive display and file export modes
 
 """
-
+def list_of_strs(arg):
+    return list(map(str, arg.split(',')))
 @dataclass
 class Arguments:
     data_load_label_column: str = 'class'
@@ -205,11 +202,13 @@ def plot_heatmaps_from_dataset(dataset_path: str, output_file: str):
         show_difference_matrix=True).plot(processor.get_features_by_label(1)[:number_cols, :number_cols],
                                           processor.get_features_by_label(0)[:number_cols, :number_cols])
 
+
+ 
 def main():
 
     parser = argparse.ArgumentParser(description='Plots SynDataGen')
 
-    parser.add_argument("--results", "-r", nargs=1, type=str, required=True)
+    parser.add_argument("--results", "-r", nargs="+", type=list_of_strs, required=True)
     parser.add_argument("--training", "-t", nargs='+', type=str, required=False)
     parser.add_argument("--title", "-i", nargs='+', type=str, default=[""])
     parser.add_argument("--folds", "-k", nargs='+', type=int, default=5)
@@ -218,11 +217,17 @@ def main():
     parser.add_argument("--model", "-m", nargs='+', type=str, default="none")
 
     args = parser.parse_args()
-
-    PlotClassificationMetrics(input_files=args.results, title=" - ".join(args.title))
-    PlotDistanceMetrics(input_files=args.results, title=" - ".join(args.title))
-    PlotConfusionMatrix(input_file=args.results[0], title=" - ".join(args.title))
-
+    args.results = args.results[0]
+ 
+    if len(args.results)>1:
+        PlotClassificationMetrics(input_files=[args.results[-1]], title=" - ".join(args.title))
+        PlotDistanceMetrics(input_files=[args.results[-1]], title=" - ".join(args.title))
+        PlotConfusionMatrix(input_file=args.results[-1], title=" - ".join(args.title))
+        plot_heatmap_svm(input_files=args.results)
+    else: 
+            PlotClassificationMetrics(input_files=args.results, title=" - ".join(args.title))
+            PlotDistanceMetrics(input_files=args.results, title=" - ".join(args.title))
+            PlotConfusionMatrix(input_file=args.results[0], title=" - ".join(args.title))
     if args.training:
         PlotTrainingCurve(input_file=args.training, title=" - ".join(args.title))
 
