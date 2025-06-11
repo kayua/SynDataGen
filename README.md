@@ -104,15 +104,21 @@ pip install .
 ```
 
 ### 🚀 Run Tests
+
+#### Demo 
+In order to execute a demo of the tool, utilized the comand listed below. The execution of this reduced demo takes around 3 minutes on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
+ 
 ```bash
-# Run all unit tests
+# Run the basic demo
+python3 run_campaign_sbseg.py -sf
+```
+#### Reproduction
+In order to reproduce the results from the paper execute the comand below, the experiments take around 7 hours on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
+
+```bash
+# Run all experiments from the paper
 python3 run_campaign_sbseg.py
-
-# Test specific module with coverage
-python3 run_campaign_sbseg.py -c tvae
-
-# Full integration tests (CI mode)
-python3 run_campaign_sbseg.py -l integration --ci
+ 
 ```
 
 ---
