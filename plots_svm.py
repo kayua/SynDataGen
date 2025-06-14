@@ -214,10 +214,10 @@ def plot_heatmap_svm(input_files: list):
     # Add separator line between TSTR and TRTS metrics
     ax.axhline(y=len(base_metrics), color='black', linewidth=2)
     
-    plt.title("SVM Classifier Performance (TSTR vs TRTS)", pad=20)
+    plt.title("SVM utility across models", pad=20)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     
     # Save and show
-    plt.savefig('svm_comparison_tstr_trts.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig('svm_comparison_utility_models.pdf', format='pdf', bbox_inches='tight')
     plt.show()

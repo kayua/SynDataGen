@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-__author__ = 'Synthetic Ocean AI - Team'
-__email__ = 'syntheticoceanai@gmail.com'
-__version__ = '{1}.{0}.{1}'
-__initial_data__ = '2022/06/01'
-__last_update__ = '2025/04/14'
-__credits__ = ['Synthetic Ocean AI']
-
+ 
 
 # MIT License
 #
-# Copyright (c) 2025 Synthetic Ocean AI
+# Copyright (c) 2025 MalDataGen
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -76,10 +68,10 @@ except ImportError as error:
 
 
 DEFAULT_VERBOSITY_LEVEL = logging.INFO  # Logging verbosity level for the experiment
-NUM_EPOCHS = 1  # Default number of training epochs (overridden per campaign)
+NUM_EPOCHS = 300  # Default number of training epochs (overridden per campaign)
 TIME_FORMAT = '%Y-%m-%d_%H:%M:%S'  # Format for timestamps in logs
 SAMPLES = '0:2000,1:2000'  # Default number of samples per class in string format (class:count)
-DEFAULT_CAMPAIGN = "wasserstein_gp variational autoencoder adversarial latent_diffusion denoising_diffusion ctgan tvae copula".split()  # Active campaign types
+DEFAULT_CAMPAIGN = "wasserstein wasserstein_gp variational autoencoder adversarial latent_diffusion denoising_diffusion ctgan tvae copula".split()  # Active campaign types
 
 
 # Default classifiers to evaluate models with (space-separated string in list)
@@ -166,6 +158,30 @@ campaigns_available['adversarial'] = {
     'adversarial_loss_discriminator': ['binary_crossentropy'],
     'adversarial_smoothing_rate': [0.15]
 }
+# === Adversarial Campaign ===
+campaigns_available['adversarial_demo'] = {
+    'classifier': DEFAULT_CLASSIFIER,
+    'model_type': ['adversarial'],
+    'number_samples_per_class': [SAMPLES],
+    'number_k_folds': [DEFAULT_K_FOLDS],
+    'adversarial_number_epochs': [1],
+    'save_data': [SAVE_DATA],
+    'adversarial_batch_size': [64],
+    'adversarial_dense_layer_sizes_g': ['256'],
+    'adversarial_dense_layer_sizes_d': ['64'],
+    'adversarial_dropout_decay_rate_g': [0.2],
+    'adversarial_dropout_decay_rate_d': [0.4],
+    'adversarial_initializer_deviation': [0.5],
+    'adversarial_initializer_mean': [0],
+    'adversarial_latent_dimension': [32],
+    'adversarial_latent_mean_distribution': [0.5],
+    'adversarial_latent_stander_deviation': [0.125],
+    'adversarial_training_algorithm': ['Adam'],
+    'adversarial_activation_function': ['leakyrelu'],
+    'adversarial_loss_generator': ['binary_crossentropy'],
+    'adversarial_loss_discriminator': ['binary_crossentropy'],
+    'adversarial_smoothing_rate': [0.15]
+}
 
 # === Autoencoder Campaign ===
 campaigns_available['autoencoder'] = {
@@ -191,6 +207,33 @@ campaigns_available['autoencoder'] = {
     'autoencoder_latent_mean_distribution': [0.5],
     'autoencoder_latent_stander_deviation': [0.500],
 }
+# === Variational Autoencoder Campaign ===
+campaigns_available['variational_demo'] = {
+    'classifier': DEFAULT_CLASSIFIER,
+    'model_type': ['variational'],
+    'number_samples_per_class': [SAMPLES],
+    'number_k_folds': [DEFAULT_K_FOLDS],
+    'save_data': [SAVE_DATA],
+    'variational_autoencoder_number_epochs': [1],
+    'variational_autoencoder_latent_dimension': [68],
+    'variational_autoencoder_training_algorithm': ['Adam'],
+    'variational_autoencoder_activation_function': ['relu'],
+    'variational_autoencoder_dropout_decay_rate_encoder': [0.2],
+    'variational_autoencoder_dropout_decay_rate_decoder': [0.2],
+    'variational_autoencoder_dense_layer_sizes_encoder': ['128 64'],
+    'variational_autoencoder_dense_layer_sizes_decoder': ['64 128'],
+    'variational_autoencoder_batch_size': [32],
+    'variational_autoencoder_number_classes': [2],
+    'variational_autoencoder_loss_function': ['binary_crossentropy'],
+    'variational_autoencoder_momentum': [0.8],
+    'variational_autoencoder_last_activation_layer': ['sigmoid'],
+    'variational_autoencoder_initializer_mean': [0.0],
+    'variational_autoencoder_initializer_deviation': [0.125],
+    'variational_autoencoder_mean_distribution': [0.5],
+    'variational_autoencoder_stander_deviation': [0.125],
+}
+
+
 
 # === Variational Autoencoder Campaign ===
 campaigns_available['variational'] = {
@@ -627,7 +670,8 @@ def main():
         campaigns_chosen = campaigns_available.keys()
 
     elif arguments.campaign == ['sf']:
-        campaigns_chosen = ['variational','adversarial']
+        campaigns_chosen = ['variational_demo','adversarial_demo']
+         
                   
     else:
 
