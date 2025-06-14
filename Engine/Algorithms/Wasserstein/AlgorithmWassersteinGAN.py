@@ -58,11 +58,11 @@ except ImportError as error:
 
 class WassersteinAlgorithm(Model):
     """
-    Implementation of the WassersteinGP Generative Adversarial Network (WGAN) algorithm.
+    Implementation of the original Wasserstein Generative Adversarial Network (WGAN) algorithm.
     This class extends the Keras Model class to create a trainable WGAN model.
 
-    The WassersteinGP GAN (Arjovsky et al., 2017) improves upon standard GANs by:
-    - Using the WassersteinGP distance (Earth Mover's distance) as the loss metric
+    The original WGAN (Arjovsky et al., 2017) improves upon standard GANs by:
+    - Using the Wasserstein (Earth Mover's) distance as the loss metric
     - Providing more stable training dynamics
     - Offering meaningful loss metrics that correlate with generation quality
 
@@ -82,7 +82,7 @@ class WassersteinAlgorithm(Model):
     Reference:
     ----------
     Arjovsky, M., Chintala, S., & Bottou, L. (2017).
-    "WassersteinGP Generative Adversarial Networks."
+    "Wasserstein Generative Adversarial Networks."
     Proceedings of the 34th International Conference on Machine Learning, PMLR 70:214-223.
     Available at: http://proceedings.mlr.press/v70/arjovsky17a.html
 
@@ -90,40 +90,11 @@ class WassersteinAlgorithm(Model):
     ---------------
     - Generator model that creates synthetic samples
     - Critic model (instead of discriminator) that scores sample realism
-    - Weight clipping to enforce Lipschitz constraint (implemented in optimizer)
+    - Weight clipping to enforce Lipschitz constraint
     - Custom training step with multiple critic updates per generator update
-
-    Raises:
-        ValueError:
-            Raised if:
-            - The latent dimension is non-positive.
-            - The smoothing rate is outside the valid range (0, 1).
-            - The number of discriminator steps is non-positive.
-
-    Example:
-        >>> python
-        ... # Define generator and critic models
-        ... generator = make_generator()  # Your generator implementation
-        ... critic = make_critic()       # Your critic implementation
-        ...
-        ... # Initialize WGAN
-        ... wgan = WassersteinAlgorithm(
-        ... generator_model=generator,
-        ... discriminator_model=critic,
-        ... latent_dimension=128,
-        ... generator_loss_fn=wasserstein_generator_loss,
-        ... discriminator_loss_fn=wasserstein_critic_loss,
-        ... file_name_discriminator='wgan_critic_weights.h5',
-        ... file_name_generator='wgan_generator_weights.h5',
-        ... models_saved_path='./saved_models/',
-        ... latent_mean_distribution=0.0,
-        ... latent_stander_deviation=1.0,
-        ... smoothing_rate=0.1,
-        ... discriminator_steps=5
-        ... )
-        >>> wgan.compile()
-
     """
+
+
     def __init__(self,
                  generator_model,
                  discriminator_model,
@@ -134,114 +105,82 @@ class WassersteinAlgorithm(Model):
                  file_name_generator,
                  models_saved_path,
                  latent_mean_distribution,
-                 latent_stander_deviation,
+                 latent_standard_deviation,
                  smoothing_rate,
                  discriminator_steps,
+                 clip_value=0.01,
                  *args,
                  **kwargs):
-
         super().__init__(*args, **kwargs)
 
-        # Initialize instance variables with provided or default values
-        self._generator_optimizer = None
-        self._discriminator_optimizer = None
         self._generator = generator_model
         self._discriminator = discriminator_model
         self._latent_dimension = latent_dimension
-        self._discriminator_loss_fn = discriminator_loss_fn
         self._generator_loss_fn = generator_loss_fn
-        self._smooth_rate = smoothing_rate
-        self._latent_mean_distribution = latent_mean_distribution
-        self._latent_stander_deviation = latent_stander_deviation
+        self._discriminator_loss_fn = discriminator_loss_fn
         self._file_name_discriminator = file_name_discriminator
         self._file_name_generator = file_name_generator
         self._models_saved_path = models_saved_path
+        self._latent_mean_distribution = latent_mean_distribution
+        self._latent_standard_deviation = latent_standard_deviation
+        self._smooth_rate = smoothing_rate
         self._discriminator_steps = discriminator_steps
+        self._clip_value = clip_value
+        self._generator_optimizer = None
+        self._discriminator_optimizer = None
 
     def compile(self, optimizer_generator, optimizer_discriminator,
                 loss_generator, loss_discriminator, *args, **kwargs):
-
         super().compile()
-        self._discriminator_optimizer = optimizer_discriminator
         self._generator_optimizer = optimizer_generator
-        self._discriminator_loss_fn = loss_discriminator
+        self._discriminator_optimizer = optimizer_discriminator
         self._generator_loss_fn = loss_generator
+        self._discriminator_loss_fn = loss_discriminator
 
-    @tensorflow.function
     def train_step(self, batch):
-        """
-        Execute one training step (forward pass + backward pass) for WGAN.
-
-        The training step consists of:
-        1. Multiple critic updates (default 5 as per WGAN paper)
-        2. One generator update
-        3. Weight clipping (should be handled by the optimizer)
-
-        Args:
-            batch (tuple): Batch of real samples (features, labels)
-
-        Returns:
-            dict: Dictionary containing loss metrics:
-                - d_loss: Critic loss
-                - g_loss: Generator loss
-        """
-        # Unpack batch into features and labels.
         real_feature, real_samples_label = batch
         batch_size = tensorflow.shape(real_feature)[0]
-
-        # Expand label dimensions to match input expectations (e.g., (batch_size, 1)).
         real_samples_label = tensorflow.expand_dims(real_samples_label, axis=-1)
 
-        # === Discriminator Training Loop ===
+        # === Critic (Discriminator) Training ===
         for _ in range(self._discriminator_steps):
-            # Generate random noise vectors for the latent space.
-            latent_space = tensorflow.random.normal((batch_size, self._latent_dimension),
-                                                    mean=self._latent_mean_distribution,
-                                                    stddev=self._latent_stander_deviation)
+            latent_space = tensorflow.random.normal(
+                (batch_size, self._latent_dimension),
+                mean=self._latent_mean_distribution,
+                stddev=self._latent_standard_deviation
+            )
 
-            with tensorflow.GradientTape() as discriminator_gradient:
-                # Generate synthetic samples from the generator using noise and labels.
-                synthetic_feature = self._generator([latent_space, real_samples_label], training=False)
+            with tensorflow.GradientTape() as disc_tape:
+                fake_feature = self._generator([latent_space, real_samples_label], training=False)
 
-                # Predict "real/fake" labels using the discriminator for real and synthetic samples.
-                label_predicted_real = self._discriminator([real_feature, real_samples_label], training=True)
-                label_predicted_synthetic = self._discriminator([synthetic_feature, real_samples_label], training=True)
+                real_output = self._discriminator([real_feature, real_samples_label], training=True)
+                fake_output = self._discriminator([fake_feature, real_samples_label], training=True)
 
-                # Compute discriminator loss (real vs fake).
-                discriminator_loss_result = self._discriminator_loss_fn(
-                    real_img=label_predicted_real, fake_img=label_predicted_synthetic)
+                d_loss = self._discriminator_loss_fn(real_output, fake_output)
 
-                # Combine loss.
-                all_discriminator_loss = discriminator_loss_result
+            gradients = disc_tape.gradient(d_loss, self._discriminator.trainable_variables)
+            self._discriminator_optimizer.apply_gradients(zip(gradients, self._discriminator.trainable_variables))
 
-            # Compute and apply gradients to update the discriminator's weights.
-            gradient_computed = discriminator_gradient.gradient(discriminator_loss_result,
-                                                                self.discriminator.trainable_variables)
-            self._discriminator_optimizer.apply_gradients(zip(gradient_computed,
-                                                              self.discriminator.trainable_variables))
+            # Apply weight clipping to enforce 1-Lipschitz constraint
+            for weight in self._discriminator.trainable_weights:
+                weight.assign(tensorflow.clip_by_value(weight, -self._clip_value, self._clip_value))
 
-        # === Generator Training Step ===
-        # Generate fresh random noise vectors for the latent space.
-        latent_space = tensorflow.random.normal((batch_size, self._latent_dimension),
-                                                mean=self._latent_mean_distribution,
-                                                stddev=self._latent_stander_deviation)
+        # === Generator Training ===
+        latent_space = tensorflow.random.normal(
+            (batch_size, self._latent_dimension),
+            mean=self._latent_mean_distribution,
+            stddev=self._latent_standard_deviation
+        )
 
-        with tensorflow.GradientTape() as generator_gradient:
-            # Generate synthetic samples from the generator.
-            synthetic_feature = self._generator([latent_space, real_samples_label], training=True)
+        with tensorflow.GradientTape() as gen_tape:
+            fake_feature = self._generator([latent_space, real_samples_label], training=True)
+            fake_output = self._discriminator([fake_feature, real_samples_label], training=False)
+            g_loss = self._generator_loss_fn(fake_output)
 
-            # Predict "real/fake" labels for synthetic samples using the discriminator.
-            predicted_labels = self._discriminator([synthetic_feature, real_samples_label], training=False)
+        gradients = gen_tape.gradient(g_loss, self._generator.trainable_variables)
+        self._generator_optimizer.apply_gradients(zip(gradients, self._generator.trainable_variables))
 
-            # Compute generator loss (how well generator fools the discriminator).
-            all_generator_loss = self._generator_loss_fn(predicted_labels)
-
-        # Compute and apply gradients to update the generator's weights.
-        gradient_computed = generator_gradient.gradient(all_generator_loss, self._generator.trainable_variables)
-        self._generator_optimizer.apply_gradients(zip(gradient_computed, self._generator.trainable_variables))
-
-        # Return the loss values for monitoring/tracking.
-        return {"d_loss": all_discriminator_loss, "g_loss": all_generator_loss}
+        return {"d_loss": d_loss, "g_loss": g_loss}
 
     def get_samples(self, number_samples_per_class):
         """
@@ -270,7 +209,7 @@ class WassersteinAlgorithm(Model):
 
             # Sample random noise vectors from a normal distribution.
             latent_noise = numpy.random.normal(loc=self._latent_mean_distribution,
-                                               scale=self._latent_stander_deviation,
+                                               scale=self._latent_standard_deviation,
                                                size=(number_instances, self._latent_dimension))
 
             # Generate synthetic samples using the generator.
