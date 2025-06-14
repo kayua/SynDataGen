@@ -35,7 +35,6 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 - [🛠 Features](#features)
 - [📊 Evaluation Strategy](#evaluation)
 - [📈 Metrics](#metrics)
-- [🧪 Example Workflows](#examples)
 - [🔧 Technologies Used/Dependências](#technologies)
 - [🔗 References](#references)
   
@@ -191,28 +190,6 @@ Two validation approaches are supported:
 
 ---
 
-## 🧪 Example Workflows <a name="examples"></a>
-
-```python
-import SynDataGen
-
-# Run a full pipeline
-gen = SynDataGen()
-gen.run_experiments()
-
-# Specify model and k-folds
-gen = SynDataGen()
-gen.arguments.model_type = 'variational'
-gen.arguments.number_k_folds = 5
-gen.run_experiments()
-
-# Comparative study
-for model in ['adversarial', 'variational', 'diffusion']:
-    gen = SynDataGen()
-    gen.arguments.model_type = model
-    gen.run_experiments()
-    gen.save_comparison_report()
-```
 
 ---
 
