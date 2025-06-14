@@ -23,10 +23,10 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 
 ---
 
-## 📚 Table of Contents
+## 📚 Table of Contents/Estrutura do readme.md
+
  
-- [📖 Overview/ Estrutura do readme.md
-](#overview)
+- [📖 Overview](#overview)
 - [Video](#overview)
 - [Stamps considered/Selos Considerados](#stamps)
 - [🚀 Getting Started](#getting-started)
