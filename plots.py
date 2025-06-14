@@ -7,7 +7,7 @@ from Tools.ClusteringVisualizer import ClusteringVisualizer
 
 # MIT License
 #
-# Copyright (c) 2025 Synthetic Ocean AI
+# Copyright (c) 2025 2025 MalDataGen
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -215,15 +215,16 @@ def main():
     parser.add_argument("--dataset", "-d", nargs='+', type=str, required=True)
     parser.add_argument("--output_dir", "-o", nargs='+', type=str, required=True)
     parser.add_argument("--model", "-m", nargs='+', type=str, default="none")
-
+    parser.add_argument("--f_plot", "-f_pl",action='store_true')
     args = parser.parse_args()
     args.results = args.results[0]
  
-    if len(args.results)>1:
+    if (args.f_plot):
         PlotClassificationMetrics(input_files=[args.results[-1]], title=" - ".join(args.title))
         PlotDistanceMetrics(input_files=[args.results[-1]], title=" - ".join(args.title))
         PlotConfusionMatrix(input_file=args.results[-1], title=" - ".join(args.title))
-        plot_heatmap_svm(input_files=args.results)
+        output=args.output_dir
+        plot_heatmap_svm(input_files=args.results,title= "/".join(output[0].split("/")[:2]))
     else: 
             PlotClassificationMetrics(input_files=args.results, title=" - ".join(args.title))
             PlotDistanceMetrics(input_files=args.results, title=" - ".join(args.title))

@@ -802,6 +802,7 @@ def main():
                         if str(item).strip()  # This filters out empty/whitespace-only strings
                     ]
                     cmd += " --results {}".format(",".join(results_str))
+                    cmd += " --f_plot  "
                     #results_grouping.append(output_dir_run)
                 else: 
                     cmd += " --results {}".format("".join([output_dir_run,"/EvaluationResults/Results.json"]))

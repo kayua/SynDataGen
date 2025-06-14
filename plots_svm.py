@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
- 
+
+__author__ = 'Synthetic Ocean AI - Team'
+__email__ = 'syntheticoceanai@gmail.com'
+__version__ = '{1}.{0}.{1}'
+__initial_data__ = '2022/06/01'
+__last_update__ = '2025/03/29'
+__credits__ = ['Synthetic Ocean AI']
 
 from Tools.ClusteringVisualizer import ClusteringVisualizer
 
 # MIT License
 #
-# Copyright (c) 2025 2025 MalDataGen
+# Copyright (c) 2025 Synthetic Ocean AI
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -81,12 +87,14 @@ def _get_values(data: Dict) -> Dict:
 
 
 
-def plot_heatmap_svm(input_files: list):
+def plot_heatmap_svm(input_files: list,title:str):
     # Model name mapping from directory to display names
     MODEL_MAPPING = {
         'adversarial': 'cGAN',
+        'adversarial_demo': 'cGAN',
         'autoencoder': 'AE',
         'variational': 'VAE',
+        'variational_demo': 'VAE',
         'quantized': 'VQ-VAE',
         'wasserstein': 'WGAN',
         'wasserstein_gp': 'WGAN-GP',
@@ -101,7 +109,9 @@ def plot_heatmap_svm(input_files: list):
         "Precision", 
         "Recall",
         "F1Score",
- 
+        "Specificity",
+        "MeanSquareError",
+        "MeanAbsoluteError"
     ]
     
     # Create metric order with TSTR and TRTS variants
@@ -214,10 +224,10 @@ def plot_heatmap_svm(input_files: list):
     # Add separator line between TSTR and TRTS metrics
     ax.axhline(y=len(base_metrics), color='black', linewidth=2)
     
-    plt.title("SVM utility across models", pad=20)
+    plt.title("SVM  performance utility_across_models", pad=20)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     
     # Save and show
-    plt.savefig('svm_comparison_utility_models.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(title+"/"+'svm_utility_across_models.pdf', format='pdf', bbox_inches='tight')
     plt.show()
