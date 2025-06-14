@@ -25,17 +25,18 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 
 ## 📚 Table of Contents
  
-- [📖 Overview](#overview)
+- [📖 Overview/ Estrutura do readme.md
+](#overview)
 - [Video](#overview)
-- [Stamps considered](#stamps)
+- [Stamps considered/Selos Considerados](#stamps)
 - [🚀 Getting Started](#getting-started)
-- [⚙️ Installation](#installation)
+- [⚙️ Installation/Instalação](#installation)
 - [🧠 Architectures](#architectures)
 - [🛠 Features](#features)
 - [📊 Evaluation Strategy](#evaluation)
 - [📈 Metrics](#metrics)
 - [🧪 Example Workflows](#examples)
-- [🔧 Technologies Used](#technologies)
+- [🔧 Technologies Used/Dependências](#technologies)
 - [🔗 References](#references)
   
 
@@ -105,14 +106,14 @@ pip install .
 
 ### 🚀 Run Tests
 
-#### Demo 
+#### Demo/Teste mínimo
 In order to execute a demo of the tool, utilized the comand listed below. The execution of this reduced demo takes around 3 minutes on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
  
 ```bash
 # Run the basic demo
 python3 run_campaign_sbseg.py -sf
 ```
-#### Reproduction
+#### Reproduction/Experimentos
 In order to reproduce the results from the paper execute the comand below, the experiments take around 7 hours on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
 
 ```bash
