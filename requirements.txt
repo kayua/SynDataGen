@@ -1,7 +1,7 @@
 -i https://pypi.org/simple
 absl-py>=1.4.0
 astunparse>=1.6.3
-pyfiglet>=1.0.2
+pyfiglet
 cachetools>=5.3.1
 certifi>=2023.7.22
 charset-normalizer>=3.2.0
