@@ -131,8 +131,13 @@ In order to reproduce the results from the paper execute the comand below, the e
 
 ```bash
 # Run all experiments from the paper
-python3 run_campaign_sbseg.py
- 
+python3 run_campaign_sbseg.py 
+```
+
+Or to execute with docker:
+```bash
+# Run all experiments from the paper
+./run_experiments_docker.sh  
 ```
 
 ---
