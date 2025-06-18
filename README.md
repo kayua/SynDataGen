@@ -28,6 +28,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
  
 - [📖 Overview/ Informações básicas](#overview)
 - [Video](#overview)
+- [Security worries](#securty_worries)
 - [Stamps considered/Selos Considerados](#stamps)
 - [🚀 Getting Started](#getting-started)
 - [⚙️ Installation/Instalação](#installation)
@@ -102,7 +103,11 @@ pip install -r requirements.txt
 # or
 pip install .
 ```
+## Security worries /Preocupações com segurança <a name="securty_worries"></a>
 
+#### We declare that the local execution of experiments has no security worries, however the docker executing require sudo permissions being available to the docker engine.
+
+ 
 ### 🚀 Run Tests
 
 #### Demo/Teste mínimo
