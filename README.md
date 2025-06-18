@@ -117,6 +117,15 @@ In order to execute a demo of the tool, utilized the comand listed below. The ex
 # Run the basic demo
 python3 run_campaign_sbseg.py -c sf
 ```
+
+Alternatively, you can use the a docker container to execute the demo, by using the following comand:
+
+```bash
+# Run the basic demo
+./run_demo_docker.sh 
+```
+
+
 #### Reproduction/Experimentos
 In order to reproduce the results from the paper execute the comand below, the experiments take around 7 hours on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
 
