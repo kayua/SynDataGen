@@ -8,7 +8,11 @@
   </a>
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" />
   <img src="https://img.shields.io/badge/open%20source-yes-green.svg" />
- 
+   <div>
+    <img src="https://img.shields.io/github/stars/SBSeg25/MalDataGen?style=social" alt="GitHub Stars" />
+    <img src="https://img.shields.io/github/forks/SBSeg25/MalDataGen?style=social" alt="GitHub Forks" />
+  </div>
+</div>
 </div>
 
 
