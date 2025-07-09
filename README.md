@@ -1,19 +1,14 @@
 [![ml-intro](Layout/layout.png)]()
-
 <div align="center">
   <img src="https://img.shields.io/badge/status-active-success.svg" />
   <img src="https://img.shields.io/badge/python-3.8+-blue.svg" />
   <img src="https://img.shields.io/badge/GPU-Supported-brightgreen.svg" />
-  <img src="https://img.shields.io/badge/docs-API_Reference-blue.svg" />
+  <a href="https://github.com/SBSeg25/MalDataGen/tree/bf2ecc5858da8c2e057663852cace4235f226600/Docs">
+    <img src="https://img.shields.io/badge/docs-API_Reference-blue.svg" />
+  </a>
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" />
   <img src="https://img.shields.io/badge/open%20source-yes-green.svg" />
-  <div>
-    <img src="https://img.shields.io/github/stars/kayua/SynDataGen.svg?style=social" />
-    <img src="https://img.shields.io/github/forks/kayua/SynDataGen.svg?style=social" />
-    <a href="https://github.com/SBSeg25/MalDataGen/tree/bf2ecc5858da8c2e057663852cace4235f226600/Docs">
  
-    </a>
-  </div>
 </div>
 
 
