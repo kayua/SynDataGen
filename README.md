@@ -10,7 +10,7 @@
   <div>
     <img src="https://img.shields.io/github/stars/kayua/SynDataGen.svg?style=social" />
     <img src="https://img.shields.io/github/forks/kayua/SynDataGen.svg?style=social" />
-    <a href=[Docs](https://github.com/SBSeg25/MalDataGen/tree/bf2ecc5858da8c2e057663852cace4235f226600/Docs)>
+    <a href="https://github.com/SBSeg25/MalDataGen/tree/bf2ecc5858da8c2e057663852cace4235f226600/Docs">
  
     </a>
   </div>
