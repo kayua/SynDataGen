@@ -10,8 +10,8 @@
   <div>
     <img src="https://img.shields.io/github/stars/kayua/SynDataGen.svg?style=social" />
     <img src="https://img.shields.io/github/forks/kayua/SynDataGen.svg?style=social" />
-    <a href="https://github.com/kayua/SynDataGen/actions?query=branch%3Amain">
-      <img src="https://github.com/kayua/SynDataGen/actions/workflows/release.yml/badge.svg?branch=main" />
+    <a href=[Docs](https://github.com/SBSeg25/MalDataGen/tree/bf2ecc5858da8c2e057663852cace4235f226600/Docs)>
+ 
     </a>
   </div>
 </div>
