@@ -61,7 +61,7 @@ We provide an overwiew of the internal architecture of the building blocks of ea
 
 We provide a comprehensive visual overview (8 diagrams)  at [Docs/Diagrams/](Docs/Diagrams/) of the MalDataGen framework, covering its architecture, design principles, data processing flow, and evaluation strategies. Developed using Mermaid notation, these diagrams support understanding of both the structural and functional aspects of the system. They include high-level system architecture, object-oriented class relationships, evaluation workflows, training pipelines, metric frameworks, and data flow. Together, they offer a detailed and cohesive view of how MalDataGen enables the generation and assessment of synthetic data in cybersecurity contexts.
 
-Additionaly an overwiew of the internal architecture of each of our models can be found at [Overview.md ](https://github.com/SBSeg25/MalDataGen/blob/2dd9eaad74da7726c130e50dbc35f95a463cbd00/Docs/Overview.md)
+
 
 ---
 
