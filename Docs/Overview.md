@@ -1,5 +1,5 @@
 # Modelos
-As figuras abaixo demonstram uma overview dos modelos implementados
+Below  we show a overview of the architecture of each of our models
 
 ## Latent Diffusion
 <img width="995" height="449" alt="latent_Difusion" src="https://github.com/user-attachments/assets/0cc74bb8-805a-4698-baee-fa78a3341d0d" />
