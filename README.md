@@ -25,24 +25,24 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 ## 📚 Table of Contents/Estrutura do readme.md
 
  
-- [📖 Overview/ Informações básicas](#overview)
+- [📖 Overview (Informações básicas)](#overview)
 - [Video](#overview)
-- [Security worries](#securty_worries)
-- [Stamps considered/Selos Considerados](#stamps)
+- [Security worries (Preocupações com segurança)](#securty_worries)
+- [Stamps considered (Selos Considerados)](#stamps)
 - [🚀 Getting Started](#getting-started)
-- [⚙️ Installation/Instalação](#installation)
+- [⚙️ Installation (Instalação)](#installation)
 - [🧠 Architectures](#architectures)
 - [🛠 Features](#features)
 - [📊 Evaluation Strategy](#evaluation)
 - [📈 Metrics](#metrics)
 - [📋 Architecture Diagrams](#architecture-diagrams)
-- [🔧 Technologies Used/Dependências](#technologies)
+- [🔧 Technologies Used (Dependências)](#technologies)
 - [🔗 References](#references)
   
 
 ---
 
-## 📖 Overview /Informações básicas <a name="overview"></a>
+## 📖 Overview (Informações básicas) <a name="overview"></a>
 
 Synthetic Ocean is a modular and extensible synthetic data generation library for tabular domains. It aims to:
 
@@ -54,9 +54,10 @@ Synthetic Ocean is a modular and extensible synthetic data generation library fo
 It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integration with academic pipelines.
 ---
 
-## 📋 Architecture Documentation
+### 📋 Architecture Documentation
 
 Comprehensive system architecture diagrams are available in [Docs/Diagrams/](Docs/Diagrams/), including system overview, class hierarchy, evaluation strategies, and deployment architecture. All diagrams are in Mermaid format suitable for academic publication.
+
 ---
 
 ## 📖 Video <a name="Video"></a>
@@ -67,7 +68,7 @@ if that doesn't work we have a backup on: https://youtu.be/t-AZtsLJUlQ
 ---
 
 
-## Stamps considered <a name="stamps"></a>
+## Stamps considered (selos considerados) <a name="stamps"></a>
 
 We, the authors, consider the following stamps:
 
@@ -99,7 +100,7 @@ source ~/Python3venv/MalDataGen/bin/activate
 
 ---
 
-## ⚙️ Installation <a name="installation"></a>
+## ⚙️ Installation (Instalação) <a name="installation"></a>
 
 ```bash
 git clone https://github.com/SBSeg25/MalDataGen.git
@@ -109,14 +110,14 @@ pip install -r requirements.txt
 # or
 pip install .
 ```
-## Security worries /Preocupações com segurança <a name="securty_worries"></a>
+## Security worries (Preocupações com segurança) <a name="securty_worries"></a>
 
 #### We declare that the local execution of experiments has no security worries, however the docker executing require sudo permissions being available to the docker engine.
 
  
 ### 🚀 Run Tests
 
-#### Demo/Teste mínimo
+#### Demo (Teste mínimo)
 In order to execute a demo of the tool, utilized the comand listed below. The execution of this reduced demo takes around 3 minutes on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
  
 ```bash
@@ -132,7 +133,7 @@ Alternatively, you can use the a docker container to execute the demo, by using 
 ```
 
 
-#### Reproduction/Experimentos
+#### Reproduction (Experimentos)
 In order to reproduce the results from the paper execute the comand below, the experiments take around 7 hours on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
 
 ```bash
