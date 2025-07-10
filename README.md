@@ -35,6 +35,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 - [🛠 Features](#features)
 - [📊 Evaluation Strategy](#evaluation)
 - [📈 Metrics](#metrics)
+- [📋 Architecture Diagrams](#architecture-diagrams)
 - [🔧 Technologies Used/Dependências](#technologies)
 - [🔗 References](#references)
   
@@ -208,6 +209,23 @@ Two validation approaches are supported:
 
 ---
 
+
+---
+
+## 📋 Architecture Diagrams <a name="architecture-diagrams"></a>
+
+Comprehensive architecture documentation is available in the [Docs/Diagrams/](Docs/Diagrams/) directory, including:
+
+- **System Architecture**: High-level framework overview and component relationships
+- **Core Class Hierarchy**: Object-oriented design and inheritance structure
+- **Evaluation Strategy**: TS-TR and TR-TS evaluation flow diagrams
+- **Model Training Pipeline**: Complete workflow sequence from data to results
+- **Metrics Framework**: Comprehensive evaluation metrics overview
+- **Data Flow Architecture**: End-to-end data processing pipeline
+- **Generative Models Comparison**: Model categories and characteristics
+- **Deployment Architecture**: Docker and execution mode options
+
+All diagrams are created using Mermaid format for easy maintenance and version control. They can be viewed directly in GitHub or exported for academic publications.
 
 ---
 
