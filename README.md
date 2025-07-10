@@ -58,6 +58,8 @@ It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integra
 
 Comprehensive system architecture diagrams are available in [Docs/Diagrams/](Docs/Diagrams/), including system overview, class hierarchy, evaluation strategies, and deployment architecture. All diagrams are in Mermaid format suitable for academic publication.
 
+Additionaly an overwiew of the internal architecture of each of our models can be found at [Overview.md ](https://github.com/SBSeg25/MalDataGen/blob/2dd9eaad74da7726c130e50dbc35f95a463cbd00/Docs/Overview.md)
+
 ---
 
 ## 📖 Video <a name="Video"></a>
