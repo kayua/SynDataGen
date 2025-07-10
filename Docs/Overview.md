@@ -1,4 +1,4 @@
-# Modelos
+# Models
 Below  we show a overview of the architecture of each of our models
 
 ## Latent Diffusion
