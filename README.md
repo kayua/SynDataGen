@@ -52,7 +52,13 @@ Synthetic Ocean is a modular and extensible synthetic data generation library fo
 - Provide publication-ready metrics and visualizations
 
 It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integration with academic pipelines.
---- 
+---
+
+## 📋 Architecture Documentation
+
+Comprehensive system architecture diagrams are available in [Docs/Diagrams/](Docs/Diagrams/), including system overview, class hierarchy, evaluation strategies, and deployment architecture. All diagrams are in Mermaid format suitable for academic publication.
+---
+
 ## 📖 Video <a name="Video"></a>
 The following link showcases a video of a demonstration of the tool: https://drive.google.com/file/d/1sbPZ1x5Np6zolhFvCBWoMzqNqrthlUe3/view?usp=sharing
 
