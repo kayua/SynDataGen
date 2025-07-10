@@ -53,6 +53,9 @@ Synthetic Ocean is a modular and extensible synthetic data generation library fo
 
 It supports GPU acceleration, CSV/XLS ingestion, custom CLI scripts, and integration with academic pipelines.
 ---
+### Model architecure overivew
+We provide an overwiew of the internal architecture of the building blocks of each one our models, denoting the main chances in the models at [Overview.md ](https://github.com/SBSeg25/MalDataGen/blob/2dd9eaad74da7726c130e50dbc35f95a463cbd00/Docs/Overview.md)
+
 
 ### 📋 Architecture Documentation
 
