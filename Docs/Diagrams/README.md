@@ -1,6 +1,6 @@
 # MalDataGen Architecture Diagrams
 
-This directory contains comprehensive Mermaid diagrams documenting the architecture, design, and workflow of the MalDataGen framework for synthetic data generation and evaluation.
+We provide a comprehensive visual overview (8 diagrams) of the MalDataGen framework, covering its architecture, design principles, data processing flow, and evaluation strategies. Developed using Mermaid notation, these diagrams support understanding of both the structural and functional aspects of the system. They include high-level system architecture, object-oriented class relationships, evaluation workflows, training pipelines, metric frameworks, and data flow. Together, they offer a detailed and cohesive view of how MalDataGen enables the generation and assessment of synthetic data in cybersecurity contexts.
 
 ## Diagram Overview
 
