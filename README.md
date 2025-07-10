@@ -44,7 +44,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 
 ## 📖 Overview (Informações básicas) <a name="overview"></a>
 
-Synthetic Ocean is a modular and extensible synthetic data generation library for tabular domains. It aims to:
+MalDataGen is a modular and extensible synthetic data generation library for tabular data for malware dectition. It aims to:
 
 - Support state-of-the-art generative models (GANs, VAEs, Diffusion, etc.)
 - Improve model generalization by augmenting training data
