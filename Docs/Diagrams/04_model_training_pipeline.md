@@ -32,9 +32,6 @@ sequenceDiagram
         GM->>GM: Generate synthetic samples
         GM->>M: Return synthetic data
         
-        M->>C: get_trained_classifiers()
-        C->>C: Train all classifiers on real data
-        C->>M: Return trained classifiers
         
         M->>E: TS-TR Evaluation
         E->>C: Train classifiers on synthetic
@@ -43,6 +40,7 @@ sequenceDiagram
         Met->>E: Return TS-TR results
         
         M->>E: TR-TS Evaluation
+        E->>: Train classifiers on real data
         E->>C: Test classifiers on synthetic
         E->>Met: Calculate metrics
         Met->>E: Return TR-TS results
