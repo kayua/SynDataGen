@@ -5,10 +5,9 @@ This diagram illustrates the two main evaluation strategies used in MalDataGen: 
 ```mermaid
 flowchart TD
     A[Input Dataset] --> B[Stratified K-Fold Split]
-    
-    subgraph "TS-TR Strategy (Train Synthetic - Test Real)"
         B --> C1[Train Generative Model on Real Data]
         C1 --> D1[Generate Synthetic Data]
+    subgraph "TS-TR Strategy (Train Synthetic - Test Real)"
         D1 --> E1[Train Classifier on Synthetic Data]
         E1 --> F1[Test Classifier on Real Data]
         F1 --> G1[Calculate Performance Metrics]
