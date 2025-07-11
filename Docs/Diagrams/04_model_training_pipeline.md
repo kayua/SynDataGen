@@ -40,7 +40,7 @@ sequenceDiagram
         Met->>E: Return TS-TR results
         
         M->>E: TR-TS Evaluation
-        E->>: Train classifiers on real data
+        E->>C: Train classifiers on real data
         E->>C: Test classifiers on synthetic
         E->>Met: Calculate metrics
         Met->>E: Return TR-TS results
