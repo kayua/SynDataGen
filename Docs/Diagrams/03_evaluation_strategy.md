@@ -5,20 +5,23 @@ This diagram illustrates the two main evaluation strategies used in MalDataGen: 
 ```mermaid
 flowchart TD
     A[Input Dataset] --> B[Stratified K-Fold Split]
-        B --> C1[Train Generative Model on Real Data]
-        C1 --> D1[Generate Synthetic Data]
+    B --> C[Train Generative Model on Real Data]
+    C --> D[Generate Synthetic Data]
+    
+    D --> E1[Train Classifier on Synthetic Data]
+    E1 --> F1[Test Classifier on Real Data]
+    F1 --> G1[Calculate Performance Metrics]
+    
+    D --> E2[Train Classifier on Real Data]
+    E2 --> F2[Test Classifier on Synthetic Data]
+    F2 --> G2[Calculate Performance Metrics]
+    
     subgraph "TS-TR Strategy (Train Synthetic - Test Real)"
-        D1 --> E1[Train Classifier on Synthetic Data]
-        E1 --> F1[Test Classifier on Real Data]
-        F1 --> G1[Calculate Performance Metrics]
+        E1 --> F1 --> G1
     end
     
     subgraph "TR-TS Strategy (Train Real - Test Synthetic)"
-        B --> C2[Train Classifier on Real Data]
-        C2 --> D2[Train Generative Model on Real Data]
-        D2 --> E2[Generate Synthetic Data]
-        E2 --> F2[Test Classifier on Synthetic Data]
-        F2 --> G2[Calculate Performance Metrics]
+        E2 --> F2 --> G2
     end
     
     G1 --> H[Performance Comparison]
@@ -29,20 +32,20 @@ flowchart TD
     
     style A fill:#e3f2fd
     style B fill:#e3f2fd
-    style C1 fill:#f3e5f5
-    style D1 fill:#f3e5f5
+    style C fill:#f3e5f5
+    style D fill:#f3e5f5
     style E1 fill:#e8f5e8
     style F1 fill:#e8f5e8
     style G1 fill:#fff3e0
-    style C2 fill:#e8f5e8
-    style D2 fill:#f3e5f5
-    style E2 fill:#f3e5f5
+    style E2 fill:#e8f5e8
     style F2 fill:#e8f5e8
     style G2 fill:#fff3e0
     style H fill:#ffebee
     style I fill:#e0f2f1
     style J fill:#e0f2f1
     style K fill:#e0f2f1
+
+
 ```
 
 ## Description
