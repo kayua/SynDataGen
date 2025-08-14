@@ -672,7 +672,10 @@ def main():
     elif arguments.campaign == ['sf']:
         campaigns_chosen = ['variational_demo','adversarial_demo']
          
-                  
+    elif arguments.campaign== ['sf2']:
+        campaigns_chosen = ['copula','tvae','ctgan']
+
+
     else:
 
         campaigns_list = arguments.campaign
