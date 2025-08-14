@@ -144,25 +144,13 @@ class SDVInterfaceAlgorithm:
         # Fit the synthesizer to the training data
         self._synthesizer.fit(real_data)
 
-     
     def get_samples(self, number_samples_per_class):
         """
-        Generates synthetic feature samples for each target class.
-
-        This method uses SDV's conditional sampling API (`sample_from_conditions`)
-        to synthesize new samples according to a class-conditioned distribution.
-        It then post-processes the samples into a usable dictionary form.
-
-        Notes:
-        ------
-        - Text/string values in features are naively replaced with 1s.
-          This may be improved by proper categorical encoding in future versions.
-        - Returns only feature samples (not class labels), grouped by class.
-
+        Generates synthetic feature samples for each target class with proper type handling.
+        
         Parameters:
         -----------
-        number_samples_per_class (dict): A structured request for sample generation.
-            Expected format:
+        number_samples_per_class (dict): 
             {
                 "classes": {
                     class_label (int/str): num_samples (int),
@@ -173,13 +161,7 @@ class SDVInterfaceAlgorithm:
 
         Returns:
         --------
-        dict:
-            A dictionary mapping class labels to arrays of synthetic feature samples.
-            Example:
-            {
-                0: np.ndarray of shape (num_samples, feature_dim),
-                1: ...
-            }
+        dict: {class_label: np.ndarray of samples}
         """
         generated_data = {}
         conditions = []
@@ -189,7 +171,7 @@ class SDVInterfaceAlgorithm:
             synthetic_data = self._synthesizer.sample(num_rows=number_instances*5, )
             conditions.append(
                 Condition(
-                num_rows=number_instances,
+                num_rows=int(number_instances),
                 column_values={'class': label_class}
                 )
             )
@@ -207,8 +189,8 @@ class SDVInterfaceAlgorithm:
         
         sdv_y_samples = sdv_data.iloc[:, -1].values   # Convert to numpy array
         
-        logging.info("\nFeature samples shape:", sdv_x_samples.shape)
-        logging.info("Target samples shape:", sdv_y_samples.shape)
+        logging.info(f"\nFeature samples shape: {sdv_x_samples.shape}")
+        logging.info(f"Target samples shape: {sdv_y_samples.shape}")
         logging.info("\nFirst 5 feature samples:")
         logging.info(sdv_x_samples[:5])
         logging.info("\nFirst 5 target samples:")
@@ -249,5 +231,3 @@ class SDVInterfaceAlgorithm:
         logging.info(f"Generated {sum(len(v) for v in generated_data.values())} total samples")
         
         return generated_data
-        
-        
