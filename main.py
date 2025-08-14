@@ -625,7 +625,7 @@ class SynDataGen(Arguments, CSVDataProcessor, Metrics, GenerativeModels, Classif
                 # Using copy-paste model to generate synthetic data (by copying and pasting from real data)
                 self.generator_name = self.arguments.model_type
                 logging.info(f"Generating data using SDV's {self.generator_name} algorithm.")
-                 
+                
                 self.data_generated = self._sdv.get_samples(number_samples_per_class)
 
             else:
