@@ -1,0 +1,727 @@
+2025-08-14 19:11:20,428	---	Campaign Command:
+	run_campaign_sbseg.py -c sf2
+
+2025-08-14 19:11:20,428	---	Campaign Settings:
+2025-08-14 19:11:20,428	---		campaign  : ['sf2']
+2025-08-14 19:11:20,428	---		dataset   : -1
+2025-08-14 19:11:20,428	---		dryrun    : False
+2025-08-14 19:11:20,428	---		pipenv    : False
+2025-08-14 19:11:20,428	---		verbosity : 20
+2025-08-14 19:11:20,428	---	
+2025-08-14 19:11:20,428	---	datasets : ['Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv']
+2025-08-14 19:11:20,429	---	
+
+
+
+2025-08-14 19:11:20,429	---	##########################################
+2025-08-14 19:11:20,429	---	 EVALUATION 
+2025-08-14 19:11:20,429	---	##########################################
+2025-08-14 19:11:20,429	---		Dataset Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv 1/1 
+2025-08-14 19:11:20,429	---			Campaign copula 1/3 
+2025-08-14 19:11:20,429	---				combination 1/1 
+2025-08-14 19:11:20,429	---				{'classifier': 'RandomForest SupportVectorMachine KNN DecisionTree NaiveBayes GradientBoosting StochasticGradientDescent', 'model_type': 'copula', 'number_samples_per_class': '0:2000,1:2000', 'number_k_folds': 5, 'save_data': 'True'}
+2025-08-14 19:11:20,429	---						Begin Experiment: 2025-08-14_19:11:20
+2025-08-14 19:11:20,429	---	Command line  : python3 main.py   --data_load_path_file_input Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv --verbosity 20 --output_dir outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1 --classifier RandomForest SupportVectorMachine KNN DecisionTree NaiveBayes GradientBoosting StochasticGradientDescent --model_type copula --number_samples_per_class 0:2000,1:2000 --number_k_folds 5 --save_data True
+2025-08-14 19:11:21.739480: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:467] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1755198681.758649       7 cuda_dnn.cc:8579] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1755198681.764664       7 cuda_blas.cc:1407] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+W0000 00:00:1755198681.779907       7 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1755198681.779937       7 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1755198681.779939       7 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+W0000 00:00:1755198681.779941       7 computation_placer.cc:177] computation placer already registered. Please check linkage and avoid linking the same target more than once.
+2025-08-14 19:11:21.783966: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+INFO:root:Created base directory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1
+INFO:root:Created subdirectory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/ModelsSaved
+INFO:root:Created subdirectory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/Logs
+INFO:root:Created subdirectory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/DataGenerated
+INFO:root:Created subdirectory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/EvaluationResults
+INFO:root:Created subdirectory: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/Monitor
+2025-08-14 19:11:24,050	***	Base directory already exists: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1
+2025-08-14 19:11:24,050	***	Failed to create directories: [Errno 17] File exists: 'outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/ModelsSaved'
+2025-08-14 19:11:24,050	***	Retrieved DataGenerated path: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/DataGenerated
+2025-08-14 19:11:24.051682: E external/local_xla/xla/stream_executor/cuda/cuda_platform.cc:51] failed call to cuInit: INTERNAL: CUDA error: Failed call to cuInit: UNKNOWN ERROR (303)
+2025-08-14 19:11:24,051	***	All GPUs disabled. Running on CPU.
+2025-08-14 19:11:24,051	***	Command:
+	main.py --data_load_path_file_input Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv --verbosity 20 --output_dir outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1 --classifier RandomForest SupportVectorMachine KNN DecisionTree NaiveBayes GradientBoosting StochasticGradientDescent --model_type copula --number_samples_per_class 0:2000,1:2000 --number_k_folds 5 --save_data True
+
+2025-08-14 19:11:24,051	***	Settings:
+2025-08-14 19:11:24,052	***		adam_optimizer_amsgrad                                           : False
+2025-08-14 19:11:24,052	***		adam_optimizer_beta_1                                            : 0.9
+2025-08-14 19:11:24,052	***		adam_optimizer_beta_2                                            : 0.999
+2025-08-14 19:11:24,052	***		adam_optimizer_epsilon                                           : 1e-07
+2025-08-14 19:11:24,052	***		adam_optimizer_learning_rate                                     : 0.001
+2025-08-14 19:11:24,052	***		classifier                                                       : ['RandomForest', 'SupportVectorMachine', 'KNN', 'DecisionTree', 'NaiveBayes', 'GradientBoosting', 'StochasticGradientDescent']
+2025-08-14 19:11:24,052	***		data_load_end_column                                             : -1
+2025-08-14 19:11:24,052	***		data_load_exclude_columns                                        : -1
+2025-08-14 19:11:24,052	***		data_load_label_column                                           : -1
+2025-08-14 19:11:24,052	***		data_load_max_columns                                            : -1
+2025-08-14 19:11:24,052	***		data_load_max_samples                                            : -1
+2025-08-14 19:11:24,052	***		data_load_path_file_input                                        : Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv
+2025-08-14 19:11:24,052	***		data_load_path_file_output                                       : OutputDir
+2025-08-14 19:11:24,052	***		data_load_start_column                                           : 0
+2025-08-14 19:11:24,052	***		decision_tree_criterion                                          : gini
+2025-08-14 19:11:24,052	***		decision_tree_max_depth                                          : None
+2025-08-14 19:11:24,052	***		decision_tree_max_features                                       : None
+2025-08-14 19:11:24,052	***		decision_tree_max_leaf_nodes                                     : None
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_activation_output_encoder        : sigmoid
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_batch_size_create_embedding      : 128
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_batch_size_training              : 64
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_decoder_filters                  : [160, 320]
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_dropout_decay_rate_decoder       : 0.4
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_dropout_decay_rate_encoder       : 0.2
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_encoder_filters                  : [320, 160]
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_epochs                           : 1000
+2025-08-14 19:11:24,052	***		denoising_diffusion_autoencoder_file_name_decoder                : decoder_model
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_file_name_encoder                : encoder_model
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_initializer_deviation            : 0.125
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_initializer_mean                 : 0.0
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_intermediary_activation_alpha    : 0.05
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_intermediary_activation_function : swish
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_last_layer_activation            : sigmoid
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_latent_dimension                 : 64
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_loss                             : mse
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_mean_distribution                : 0.5
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_path_output_models               : models_saved/
+2025-08-14 19:11:24,053	***		denoising_diffusion_autoencoder_stander_deviation                : 0.125
+2025-08-14 19:11:24,053	***		denoising_diffusion_ema                                          : 0.999
+2025-08-14 19:11:24,053	***		denoising_diffusion_gaussian_beta_end                            : 0.02
+2025-08-14 19:11:24,053	***		denoising_diffusion_gaussian_beta_start                          : 0.0001
+2025-08-14 19:11:24,053	***		denoising_diffusion_gaussian_clip_max                            : 1.0
+2025-08-14 19:11:24,053	***		denoising_diffusion_gaussian_clip_min                            : -1.0
+2025-08-14 19:11:24,053	***		denoising_diffusion_gaussian_time_steps                          : 1000
+2025-08-14 19:11:24,053	***		denoising_diffusion_latent_dimension                             : 64
+2025-08-14 19:11:24,053	***		denoising_diffusion_margin                                       : 0.5
+2025-08-14 19:11:24,053	***		denoising_diffusion_time_steps                                   : 1000
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_attention_mode                          : [False, True, True]
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_batch_size                              : 128
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_channels_per_level                      : [1, 2, 4]
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_epochs                                  : 1000
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_group_normalization                     : 1
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_intermediary_activation                 : swish
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_intermediary_activation_alpha           : 0.05
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_last_layer_activation                   : linear
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_num_embedding_channels                  : 1
+2025-08-14 19:11:24,053	***		denoising_diffusion_unet_num_residual_blocks                     : 2
+2025-08-14 19:11:24,053	***		early_stop_baseline                                              : None
+2025-08-14 19:11:24,053	***		early_stop_min_delta                                             : 0.0001
+2025-08-14 19:11:24,054	***		early_stop_mode                                                  : auto
+2025-08-14 19:11:24,054	***		early_stop_monitor                                               : val_loss
+2025-08-14 19:11:24,054	***		early_stop_patience                                              : 50
+2025-08-14 19:11:24,054	***		early_stop_restore_best_weights                                  : None
+2025-08-14 19:11:24,054	***		early_stop_start_from_epoch                                      : 100
+2025-08-14 19:11:24,054	***		evaluation                                                       : ['TrAs', 'TsAr']
+2025-08-14 19:11:24,054	***		gaussian_process_kernel                                          : None
+2025-08-14 19:11:24,054	***		gaussian_process_max_iterations                                  : 20
+2025-08-14 19:11:24,054	***		gaussian_process_optimizer                                       : fmin_l_bfgs_b
+2025-08-14 19:11:24,054	***		gradient_boosting_criterion                                      : friedman_mse
+2025-08-14 19:11:24,054	***		gradient_boosting_learning_rate                                  : 0.1
+2025-08-14 19:11:24,054	***		gradient_boosting_loss                                           : log_loss
+2025-08-14 19:11:24,054	***		gradient_boosting_number_estimators                              : 100
+2025-08-14 19:11:24,054	***		gradient_boosting_subsample                                      : 1.0
+2025-08-14 19:11:24,054	***		k_means_init                                                     : k-means++
+2025-08-14 19:11:24,054	***		k_means_max_iterations                                           : 300
+2025-08-14 19:11:24,054	***		k_means_number_clusters                                          : 2
+2025-08-14 19:11:24,054	***		k_means_random_state                                             : None
+2025-08-14 19:11:24,054	***		k_means_tolerance                                                : 0.0001
+2025-08-14 19:11:24,054	***		knn_algorithm                                                    : auto
+2025-08-14 19:11:24,054	***		knn_leaf_size                                                    : 30
+2025-08-14 19:11:24,054	***		knn_metric                                                       : minkowski
+2025-08-14 19:11:24,055	***		knn_number_neighbors                                             : 5
+2025-08-14 19:11:24,055	***		knn_weights                                                      : uniform
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_activation_output_encoder           : sigmoid
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_batch_size_create_embedding         : 128
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_batch_size_training                 : 64
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_decoder_filters                     : [160, 320]
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_dropout_decay_rate_decoder          : 0.4
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_dropout_decay_rate_encoder          : 0.2
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_encoder_filters                     : [320, 160]
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_epochs                              : 1000
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_file_name_decoder                   : decoder_model
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_file_name_encoder                   : encoder_model
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_initializer_deviation               : 0.125
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_initializer_mean                    : 0.0
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_intermediary_activation_alpha       : 0.05
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_intermediary_activation_function    : swish
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_last_layer_activation               : sigmoid
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_latent_dimension                    : 64
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_loss                                : mse
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_mean_distribution                   : 0.5
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_path_output_models                  : models_saved/
+2025-08-14 19:11:24,055	***		latent_diffusion_autoencoder_stander_deviation                   : 0.125
+2025-08-14 19:11:24,055	***		latent_diffusion_ema                                             : 0.999
+2025-08-14 19:11:24,055	***		latent_diffusion_gaussian_beta_end                               : 0.02
+2025-08-14 19:11:24,055	***		latent_diffusion_gaussian_beta_start                             : 0.0001
+2025-08-14 19:11:24,055	***		latent_diffusion_gaussian_clip_max                               : 1.0
+2025-08-14 19:11:24,055	***		latent_diffusion_gaussian_clip_min                               : -1.0
+2025-08-14 19:11:24,056	***		latent_diffusion_gaussian_time_steps                             : 1000
+2025-08-14 19:11:24,056	***		latent_diffusion_latent_dimension                                : 64
+2025-08-14 19:11:24,056	***		latent_diffusion_margin                                          : 0.5
+2025-08-14 19:11:24,056	***		latent_diffusion_time_steps                                      : 1000
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_attention_mode                             : [False, True, True]
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_batch_size                                 : 128
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_channels_per_level                         : [1, 2, 4]
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_epochs                                     : 1000
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_group_normalization                        : 1
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_intermediary_activation                    : swish
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_intermediary_activation_alpha              : 0.05
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_last_layer_activation                      : linear
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_num_embedding_channels                     : 1
+2025-08-14 19:11:24,056	***		latent_diffusion_unet_num_residual_blocks                        : 2
+2025-08-14 19:11:24,056	***		linear_regression_copy_X                                         : True
+2025-08-14 19:11:24,056	***		linear_regression_fit_intercept                                  : True
+2025-08-14 19:11:24,056	***		linear_regression_normalize                                      : False
+2025-08-14 19:11:24,056	***		linear_regression_number_jobs                                    : None
+2025-08-14 19:11:24,056	***		model_type                                                       : copula
+2025-08-14 19:11:24,056	***		naive_bayes_priors                                               : None
+2025-08-14 19:11:24,056	***		naive_bayes_variation_smoothing                                  : 1e-09
+2025-08-14 19:11:24,056	***		number_k_folds                                                   : 5
+2025-08-14 19:11:24,056	***		number_samples_per_class                                         : {'classes': {0: 2000, 1: 2000}, 'number_classes': 2}
+2025-08-14 19:11:24,056	***		output_dir                                                       : outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1
+2025-08-14 19:11:24,056	***		path_confusion_matrix                                            : confusion_matrix
+2025-08-14 19:11:24,056	***		path_curve_loss                                                  : training_curve
+2025-08-14 19:11:24,056	***		perceptron_dropout_decay_rate                                    : 0.2
+2025-08-14 19:11:24,056	***		perceptron_last_layer_activation                                 : sigmoid
+2025-08-14 19:11:24,056	***		perceptron_layer_activation                                      : relu
+2025-08-14 19:11:24,056	***		perceptron_layers_settings                                       : [512, 256, 256]
+2025-08-14 19:11:24,056	***		perceptron_number_epochs                                         : 1
+2025-08-14 19:11:24,056	***		perceptron_training_algorithm                                    : Adam
+2025-08-14 19:11:24,056	***		perceptron_training_loss                                         : binary_crossentropy
+2025-08-14 19:11:24,057	***		perceptron_training_metric                                       : ['accuracy']
+2025-08-14 19:11:24,057	***		quadratic_discriminant_analysis_priors                           : None
+2025-08-14 19:11:24,057	***		quadratic_discriminant_analysis_regularization                   : 0.0
+2025-08-14 19:11:24,057	***		quadratic_discriminant_analysis_threshold                        : 0.0001
+2025-08-14 19:11:24,057	***		random_forest_max_depth                                          : None
+2025-08-14 19:11:24,057	***		random_forest_max_leaf_nodes                                     : None
+2025-08-14 19:11:24,057	***		random_forest_number_estimators                                  : 100
+2025-08-14 19:11:24,057	***		random_noise_level                                               : 0.1
+2025-08-14 19:11:24,057	***		random_noise_type_noise                                          : uniform
+2025-08-14 19:11:24,057	***		save_data                                                        : True
+2025-08-14 19:11:24,057	***		save_models                                                      : False
+2025-08-14 19:11:24,057	***		smote_k_neighbors                                                : 2
+2025-08-14 19:11:24,057	***		smote_random_state                                               : None
+2025-08-14 19:11:24,057	***		smote_sampling_strategy                                          : auto
+2025-08-14 19:11:24,057	***		spectral_affinity                                                : rbf
+2025-08-14 19:11:24,057	***		spectral_assign_labels                                           : kmeans
+2025-08-14 19:11:24,057	***		spectral_eigen_solver                                            : None
+2025-08-14 19:11:24,057	***		spectral_number_clusters                                         : 8
+2025-08-14 19:11:24,057	***		spectral_random_state                                            : None
+2025-08-14 19:11:24,057	***		stochastic_gradient_descent_alpha                                : 0.0001
+2025-08-14 19:11:24,057	***		stochastic_gradient_descent_loss                                 : hinge
+2025-08-14 19:11:24,057	***		stochastic_gradient_descent_max_iterations                       : 1000
+2025-08-14 19:11:24,057	***		stochastic_gradient_descent_penalty                              : l2
+2025-08-14 19:11:24,057	***		stochastic_gradient_descent_tolerance                            : 0.001
+2025-08-14 19:11:24,057	***		support_vector_machine_gamma                                     : scale
+2025-08-14 19:11:24,057	***		support_vector_machine_kernel                                    : rbf
+2025-08-14 19:11:24,057	***		support_vector_machine_kernel_degree                             : 3
+2025-08-14 19:11:24,057	***		support_vector_machine_regularization                            : 1.0
+2025-08-14 19:11:24,057	***		use_early_stop                                                   : False
+2025-08-14 19:11:24,057	***		use_gpu                                                          : False
+2025-08-14 19:11:24,058	***		verbosity                                                        : 20
+2025-08-14 19:11:24,058	***	
+2025-08-14 19:11:24,058	***	Attempting to load CSV from path: Datasets/SBSeg_2025/reduced_balanced_androcrawl.csv
+2025-08-14 19:11:24,161	***	CSV loaded successfully with shape: (20340, 137)
+2025-08-14 19:11:24,161	***	CSV file is not empty, proceeding with processing.
+2025-08-14 19:11:24,161	***	Replacing infinite values and removing missing data.
+2025-08-14 19:11:24,170	***	Data after cleaning has shape: (20340, 137)
+2025-08-14 19:11:24,171	***	Original CSV header stored.
+2025-08-14 19:11:24,171	***	Label column automatically set to: class
+2025-08-14 19:11:24,171	***	Separating the label column: class
+2025-08-14 19:11:24,176	***	Labels separated, remaining data shape: (20340, 136)
+2025-08-14 19:11:24,181	***	Data loaded and header updated. Final data shape: (20340, 136)
+2025-08-14 19:11:24,190	***	Data normalized between 0 and 1.
+2025-08-14 19:11:24,190	***	StratifiedKFold initialization started. Number of splits: 5, Shuffle: True, Random state: 42.
+2025-08-14 19:11:24,201	***	Data loaded for stratification. Total samples: 20340
+2025-08-14 19:11:24,204	***	Processing fold 1 of 5.
+2025-08-14 19:11:24,204	***	Training   indices (size 16272): [    0     1     2 ... 20336 20338 20339]
+2025-08-14 19:11:24,204	***	Evaluating indices (size 4068): [    3     5     7 ... 20331 20333 20337]
+2025-08-14 19:11:25,075	***	Fold 1 processed successfully in 0.87 seconds.
+2025-08-14 19:11:25,075	***	Processing fold 2 of 5.
+2025-08-14 19:11:25,075	***	Training   indices (size 16272): [    1     3     4 ... 20336 20337 20338]
+2025-08-14 19:11:25,076	***	Evaluating indices (size 4068): [    0     2    16 ... 20315 20321 20339]
+2025-08-14 19:11:25,949	***	Fold 2 processed successfully in 0.87 seconds.
+2025-08-14 19:11:25,949	***	Processing fold 3 of 5.
+2025-08-14 19:11:25,950	***	Training   indices (size 16272): [    0     1     2 ... 20337 20338 20339]
+2025-08-14 19:11:25,950	***	Evaluating indices (size 4068): [    4    11    12 ... 20330 20332 20334]
+2025-08-14 19:11:26,823	***	Fold 3 processed successfully in 0.87 seconds.
+2025-08-14 19:11:26,823	***	Processing fold 4 of 5.
+2025-08-14 19:11:26,823	***	Training   indices (size 16272): [    0     1     2 ... 20336 20337 20339]
+2025-08-14 19:11:26,824	***	Evaluating indices (size 4068): [    9    14    19 ... 20327 20335 20338]
+2025-08-14 19:11:27,562	***	Fold 4 processed successfully in 0.74 seconds.
+2025-08-14 19:11:27,563	***	Processing fold 5 of 5.
+2025-08-14 19:11:27,563	***	Training   indices (size 16272): [    0     2     3 ... 20337 20338 20339]
+2025-08-14 19:11:27,563	***	Evaluating indices (size 4068): [    1     6     8 ... 20323 20329 20336]
+2025-08-14 19:11:28,228	***	Fold 5 processed successfully in 0.67 seconds.
+2025-08-14 19:11:28,228	***	All 5 folds successfully created in 4.04 seconds.
+2025-08-14 19:11:28,228	***	Starting experiment runs across 5 folds.
+2025-08-14 19:11:28,228	***	
+2025-08-14 19:11:28,228	***	Running experiment for fold 1.
+2025-08-14 19:11:28,228	***	Fold 1 training data shape: X=(16272, 136), Y=(16272, 1)
+2025-08-14 19:11:28,228	***	Retrieved Monitor path: outputs/out_2025-08-14_19-11-20/reduced_balanced_androcrawl/copula/combination_1/Monitor
+2025-08-14 19:11:28,229	***	Starting model creation and prediction process.
+2025-08-14 19:11:28,230	***	Number of real samples: 16272
+2025-08-14 19:11:28,230	***	Training model with 16272 samples and model type: copula
+2025-08-14 19:11:28,230	***	Training SDV's model copula algorithm.
+2025-08-14 19:11:30,904	***	Detected metadata:
+{
+    "columns": {
+        "Dangerous Permission: ACCESS_SUPERUSER": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: CHANGE_COMPONENT_ENABLED_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Dangerous Permission: CLEAR_APP_USER_DATA": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: DELETE_CACHE_FILES": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: DELETE_PACKAGES": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: DISABLE_KEYGUARD": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: FACTORY_TEST": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: INSTALL_PACKAGES": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: INJECT_EVENTS": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: INTERNAL_SYSTEM_WINDOW": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: KILL_BACKGROUND_PROCESSES": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: MASTER_CLEAR": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: MODIFY_PHONE_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Dangerous Permission: PROCESS_OUTGOING_CALLS": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: READ_LOGS": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: REBOOT": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: RECEIVE_BOOT_COMPLETED": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: STATUS_BAR": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: WRITE_EXTERNAL_STORAGE": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: WRITE_HISTORY_BOOKMARKS": {
+            "sdtype": "categorical"
+        },
+        "Dangerous Permission: WRITE_SECURE_SETTINGS": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/Context;->startService": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getSubscriberId": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getDeviceId": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getLine1Number": {
+            "pii": true,
+            "sdtype": "street_address"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getSimSerialNumber": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getSimOperatorName": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/TelephonyManager;->getCellLocation": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/telephony/SmsManager;->sendTextMessage": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/Intent;->setDataAndType": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/Intent;->setType": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/app/ActivityManager;->getRunningServices": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/app/ActivityManager;->getMemoryInfo": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/app/ActivityManager;->restartPackage": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/pm/PackageManager;->getInstalledPackages": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Ljava/lang/System;->loadLibrary": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Ljavax/crypto/Cipher;->getInstance": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/provider/Browser;->getAllBookmarks": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/Intent;->describeContents": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/content/pm/PackageManager;->getPreferredActivities": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/app/Service;->onLowMemory": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/os/Parcel;->marshall": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Ldalvik/system/DexClassLoader;-><init>": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Ljava/lang/ClassLoader;->loadClass": {
+            "sdtype": "categorical"
+        },
+        "Api Call: Landroid/accounts/AccountManager;->getAccounts": {
+            "sdtype": "categorical"
+        },
+        "Communication: INTERNET": {
+            "sdtype": "categorical"
+        },
+        "Communication: ACCESS_NETWORK_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Communication: CHANGE_NETWORK_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Communication: BLUETOOTH_ADMIN": {
+            "sdtype": "categorical"
+        },
+        "Communication: BLUETOOTH": {
+            "sdtype": "categorical"
+        },
+        "Communication: WRITE_APN_SETTINGS": {
+            "sdtype": "categorical"
+        },
+        "Communication: NETWORK": {
+            "sdtype": "categorical"
+        },
+        "Communication: SUBSCRIBED_FEEDS_WRITE": {
+            "sdtype": "categorical"
+        },
+        "Communication: NFC": {
+            "sdtype": "categorical"
+        },
+        "Communication: NETWORK_PROVIDER": {
+            "sdtype": "categorical"
+        },
+        "Communication: WRITE_SOCIAL_STREAM": {
+            "sdtype": "categorical"
+        },
+        "Communication: SEND_SMS": {
+            "sdtype": "categorical"
+        },
+        "Communication: USE_SIP": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: ACCESS_FINE_LOCATION": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: ACCESS_COARSE_LOCATION": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: ACCESS_LOCATION_EXTRA_COMMANDS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: ACCESS_MOCK_LOCATION": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: ACCESS_WIFI_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Can Steal Data: CAMERA": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: DIAGNOSTIC": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: DUMP": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: GET_ACCOUNTS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: GET_TASKS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_CALENDAR": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_CALL_LOG": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_CONTACTS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_EXTERNAL_STORAGE": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_HISTORY_BOOKMARKS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_PHONE_STATE": {
+            "pii": true,
+            "sdtype": "administrative_unit"
+        },
+        "Can Steal Data: READ_PROFILE": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_SMS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: READ_SYNC_SETTINGS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: RECEIVE_MMS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: RECEIVE_SMS": {
+            "sdtype": "categorical"
+        },
+        "Can Steal Data: RECORD_AUDIO": {
+            "sdtype": "categorical"
+        },
+        "Content: content://mms": {
+            "sdtype": "categorical"
+        },
+        "Content: content://sms": {
+            "sdtype": "categorical"
+        },
+        "Content: content://telephony/carriers/preferapn": {
+            "sdtype": "categorical"
+        },
+        "Airpush Included": {
+            "sdtype": "categorical"
+        },
+        "Notification Api Call: Landroid/app/Notification;-><init>": {
+            "sdtype": "categorical"
+        },
+        "Notification Api Call: Landroid/app/NotificationManager;->notify": {
+            "sdtype": "categorical"
+        },
+        "Contains Hardcoded URLs": {
+            "sdtype": "categorical"
+        },
+        "URLs Domains differ from Package": {
+            "sdtype": "categorical"
+        },
+        "Contains URL known to be suspicious": {
+            "sdtype": "categorical"
+        },
+        "Valid Domain in Package Name": {
+            "sdtype": "categorical"
+        },
+        "Package Name contains Tetragrams": {
+            "sdtype": "categorical"
+        },
+        "Obsfuscation present": {
+            "sdtype": "categorical"
+        },
+        "Calls a System Routine: su": {
+            "sdtype": "categorical"
+        },
+        "Calls a System Routine: /bin": {
+            "sdtype": "categorical"
+        },
+        "Calls a System Routine: mount": {
+            "sdtype": "categorical"
+        },
+        "Calls a System Routine: /system": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: ACCESS_SURFACE_FLINGER": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: ACCOUNT_MANAGER": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: CONTROL_LOCATION_UPDATES": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: DEVICE_POWER": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: EXPAND_STATUS_BAR": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: FLASHLIGHT": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: GET_PACKAGE_SIZE": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: GLOBAL_SEARCH": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: INSTALL_SHORTCUT": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: MODIFY_AUDIO_SETTINGS": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: READ_USER_DICTIONARY": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: REORDER_TASKS": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: SET_ALARM": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: SET_ORIENTATION": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: SET_TIME": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: SET_TIME_ZONE": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: SET_WALLPAPER": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: UNINSTALL_SHORTCUT": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: VIBRATE": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: WAKE_LOCK": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: WRITE_CALENDAR": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: WRITE_CALL_LOG": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: WRITE_CONTACTS": {
+            "sdtype": "categorical"
+        },
+        "Harmless Permission: WRITE_USER_DICTIONARY": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: BOOT_COMPLETED": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: NEW_OUTGOING_CALL": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: PACKAGE_ADDED": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: PACKAGE_CHANGED": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: PACKAGE_REMOVED": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: POWER_CONNECTED": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: SHUTDOWN": {
+            "sdtype": "categorical"
+        },
+        "Suspicious Intent Filter: USER_PRESENT": {
+            "sdtype": "categorical"
+        },
+        "Hidden Apk": {
+            "sdtype": "categorical"
+        },
+        "Sends SMS to Suspicious Number(s)": {
+            "sdtype": "categorical"
+        },
+        "Package Domain Exists": {
+            "sdtype": "categorical"
+        },
+        "Reads phone data at startup": {
+            "sdtype": "categorical"
+        },
+        "Sends SMS at startup": {
+            "sdtype": "categorical"
+        },
+        "Starts service at startup": {
+            "sdtype": "categorical"
+        },
+        "Sends SMS when receiving SMS": {
+            "sdtype": "categorical"
+        },
+        "Accesses a database when receiving SMS": {
+            "sdtype": "categorical"
+        },
+        "class": {
+            "sdtype": "categorical"
+        }
+    }
+}
+/usr/local/lib/python3.10/dist-packages/sdv/single_table/base.py:133: UserWarning: We strongly recommend saving the metadata using 'save_to_json' for replicability in future SDV versions.
+  warnings.warn(
+2025-08-14 19:11:33,093	***	{'EVENT': 'Instance', 'TIMESTAMP': datetime.datetime(2025, 8, 14, 19, 11, 33, 93336), 'SYNTHESIZER CLASS NAME': 'GaussianCopulaSynthesizer', 'SYNTHESIZER ID': 'GaussianCopulaSynthesizer_1.25.0_c3fd53a4ab6443be88a59d987db06467'}
+2025-08-14 19:11:33,093	***	{'EVENT': 'Fit', 'TIMESTAMP': datetime.datetime(2025, 8, 14, 19, 11, 33, 93526), 'SYNTHESIZER CLASS NAME': 'GaussianCopulaSynthesizer', 'SYNTHESIZER ID': 'GaussianCopulaSynthesizer_1.25.0_c3fd53a4ab6443be88a59d987db06467', 'TOTAL NUMBER OF TABLES': 1, 'TOTAL NUMBER OF ROWS': 16272, 'TOTAL NUMBER OF COLUMNS': 137}
+2025-08-14 19:11:33,096	***	Fitting table  metadata
+2025-08-14 19:11:33,101	***	Fitting formatters for table 
+2025-08-14 19:11:33,101	***	Setting the configuration for the ``HyperTransformer`` for table 
+2025-08-14 19:11:33,167	***	Fitting HyperTransformer for table 
+Creating the structure of directories...
+done.
+
+args campaign ['sf2']
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/subprocess.py", line 1209, in wait
+    return self._wait(timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1959, in _wait
+    (pid, sts) = self._try_wait(0)
+  File "/usr/lib/python3.10/subprocess.py", line 1917, in _try_wait
+    (pid, sts) = os.waitpid(self.pid, wait_flags)
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/MalDataGen/run_campaign_sbseg.py", line 846, in <module>
+    sys.exit(main())
+  File "/MalDataGen/run_campaign_sbseg.py", line 791, in main
+    run_cmd(cmd)
+  File "/MalDataGen/run_campaign_sbseg.py", line 538, in run_cmd
+    subprocess.run(cmd_array, check=True, shell=shell)
+  File "/usr/lib/python3.10/subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1146, in communicate
+    self.wait()
+  File "/usr/lib/python3.10/subprocess.py", line 1222, in wait
+    self._wait(timeout=sigint_timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1953, in _wait
+    time.sleep(delay)
+KeyboardInterrupt
