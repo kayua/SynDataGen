@@ -154,7 +154,7 @@ Or to execute with docker:
 
 ---
 
-###### Expected outputs:
+##### Expected outputs:
 After executing the experiments, you should observe the following structure within the outputs folder, with a separate folder for each model executed:
 <img width="1600" height="507" alt="image" src="https://github.com/user-attachments/assets/fafb0516-c227-4aba-8596-679aeb1d68f9" />
 A results folder is also present, containing the training curves for each model.
