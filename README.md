@@ -91,7 +91,7 @@ We provide instructions for the installation, execution, and reproduction of the
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - pip
 - (Optional) CUDA 11+ for GPU acceleration
 
