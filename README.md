@@ -154,6 +154,33 @@ Or to execute with docker:
 
 ---
 
+###### Expected outputs:
+After executing the experiments, you should observe the following structure within the outputs folder, with a separate folder for each model executed:
+<img width="1600" height="507" alt="image" src="https://github.com/user-attachments/assets/fafb0516-c227-4aba-8596-679aeb1d68f9" />
+A results folder is also present, containing the training curves for each model.
+
+Within each model's folder, there will be five subfolders:
+
+    - Data generated: Contains the synthetic dataset and the partitioned subsets of the real dataset used for training.
+
+    - Evaluation results: Contains:
+
+        - A clustering visualization of the dataset samples to assist in identifying malware families.
+
+        - Heatmaps comparing the synthetic and real samples for each fold; these are intended to illustrate the variability of specific features, with a closer alignment indicating greater similarity.
+
+        - Confusion matrices for each classifier on each fold.
+
+        - A bar graph presenting the metrics for each classifier using the TSTR and TRTS evaluation methods.
+
+    - Logs: Contains the generated logs.
+
+    - Monitor: Contains the raw data collected during the monitoring of the experiment.
+
+    - Models Saved: Contains the saved models for each fold, provided the option to save models was active.
+
+Additionally, a file named "Binary classification metrics for SVM classifier.pdf" should be created in the project's root folder. This file provides a comparison of the SVM classifier's performance across the models, similar to Figure 3 in the article.
+
 ## 🧠 Architectures Supported <a name="architectures"></a>
 
 ### 🔨 Native Models
