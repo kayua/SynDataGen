@@ -72,21 +72,6 @@ if that doesn't work we have a backup on: https://youtu.be/t-AZtsLJUlQ
 
 ---
 
-
-## Stamps considered (selos considerados) <a name="stamps"></a>
-
-We, the authors, consider the following stamps:
-
-  - Available artifacts (Stamp D)
-
-  - Functional artifacts (Stamp F)
-
-  - Sustainable artifacts (Stamp S)
-
-  - Reproducible experiments (Stamp R)
-
-We provide instructions for the installation, execution, and reproduction of the experiments presented in the paper, along with information about the execution environment and dependencies.
-
 ## 🚀 Getting Started <a name="getting-started"></a>
 
 ### Prerequisites
