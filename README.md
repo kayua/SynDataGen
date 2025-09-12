@@ -327,15 +327,19 @@ All diagrams are created using Mermaid format for easy maintenance and version c
 ## 🔗 References <a name="references"></a>
 ### How to cite this tool
 ```bibtex
-@inproceedings{paim2025maldatagen,
-  author    = {Paim, Kayuã Oleques and Nogueira, Angelo Gaspar Diniz and Kreutz, Diego and Cordeiro, Weverton and Mansilha, Rodrigo Brandão},
-  title     = {MalDataGen: A Modular Framework for Synthetic Tabular Data Generation in Malware Detection},
-  booktitle = {Anais do 25º Simpósio Brasileiro de Cibersegurança (SBSEG) - Salão de Ferramentas},
-  year      = {2025},
-  address   = {Foz do Iguaçu, PR},
-  pages     = {38--47},
-  publisher = {Sociedade Brasileira de Computação},
-  doi       = {10.5753/sbseg_estendido.2025.12113}
+@inproceedings{sbseg25_maldatagen,
+ author = {Kayuã Paim and Angelo Nogueira and Diego Kreutz and Weverton Cordeiro and Rodrigo Mansilha},
+ title = { MalDataGen: A Modular Framework for Synthetic Tabular Data Generation in Malware Detection},
+ booktitle = {Companion Proceedings of the 25th Brazilian Symposium on Cybersecurity},
+ location = {Foz do Iguaçu/PR},
+ year = {2025},
+ keywords = {},
+ issn = {0000-0000},
+ pages = {38--47},
+ publisher = {SBC},
+ address = {Porto Alegre, RS, Brasil},
+ doi = {10.5753/sbseg_estendido.2025.12113},
+ url = {https://sol.sbc.org.br/index.php/sbseg_estendido/article/view/36739}
 }
 ```
 
