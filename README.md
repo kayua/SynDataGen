@@ -291,6 +291,19 @@ All diagrams are created using Mermaid format for easy maintenance and version c
 ---
 
 ## 🔗 References <a name="references"></a>
+### How to cite this tool
+```bibtex
+@inproceedings{paim2025maldatagen,
+  author    = {Paim, Kayuã Oleques and Nogueira, Angelo Gaspar Diniz and Kreutz, Diego and Cordeiro, Weverton and Mansilha, Rodrigo Brandão},
+  title     = {MalDataGen: A Modular Framework for Synthetic Tabular Data Generation in Malware Detection},
+  booktitle = {Anais do 25º Simpósio Brasileiro de Cibersegurança (SBSEG) - Salão de Ferramentas},
+  year      = {2025},
+  address   = {Foz do Iguaçu, PR},
+  pages     = {38--47},
+  publisher = {Sociedade Brasileira de Computação},
+  doi       = {10.5753/sbseg_estendido.2025.12113}
+}
+```
 
 ### Core Papers
 - [Kingma, D. P., & Welling, M. (2013). Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114)  
