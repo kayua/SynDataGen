@@ -22,7 +22,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 
 ---
 
-## 📚 Table of Contents/Estrutura do readme.md
+## 📚 Table of Contents (Readme.md)
 
  
 - [📖 Overview (Informações básicas)](#overview)
@@ -42,7 +42,7 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
 
 ---
 
-## 📖 Overview (Informações básicas) <a name="overview"></a>
+## 📖 Overview <a name="overview"></a>
 
 MalDataGen is a modular and extensible synthetic data generation library for tabular data for malware dectition. It aims to:
 
@@ -100,14 +100,14 @@ pip install -r requirements.txt
 # or
 pip install .
 ```
-## Security worries (Preocupações com segurança) <a name="securty_worries"></a>
+## Security worries <a name="securty_worries"></a>
 
 #### We declare that the local execution of experiments has no security worries, however the docker executing require sudo permissions being available to the docker engine.
 
  
 ### 🚀 Run Tests
 
-#### Demo (Teste mínimo)
+#### Demo
 In order to execute a demo of the tool, utilized the comand listed below. The execution of this reduced demo takes around 3 minutes on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
  
 ```bash
@@ -123,7 +123,7 @@ Alternatively, you can use the a docker container to execute the demo, by using 
 ```
 
 
-#### Reproduction (Experimentos)
+#### Reproduction
 In order to reproduce the results from the paper execute the comand below, the experiments take around 7 hours on a AMD Ryzen 7 5800x, 8 cores, 64 GB RAM machine.
 
 ```bash
