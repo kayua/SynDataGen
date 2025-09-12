@@ -39,6 +39,8 @@ If you use **MalDataGen** in your research, whether for generating synthetic dat
  doi = {10.5753/sbseg_estendido.2025.12113},
  url = {https://sol.sbc.org.br/index.php/sbseg_estendido/article/view/36739}
 }
+```
+
 
 ---
 
