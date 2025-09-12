@@ -28,10 +28,14 @@ If you use **MalDataGen** in your research, whether for generating synthetic dat
 @inproceedings{sbseg25_maldatagen,
  author = {Kayuã Paim and Angelo Nogueira and Diego Kreutz and Weverton Cordeiro and Rodrigo Mansilha},
  title = { MalDataGen: A Modular Framework for Synthetic Tabular Data Generation in Malware Detection},
- booktitle = {Anais Estendidos do XXV Simpósio Brasileiro de Cibersegurança},
+ booktitle = {Companion Proceedings of the 25th Brazilian Symposium on Cybersecurity},
+ location = {Foz do Iguaçu/PR},
  year = {2025},
+ keywords = {},
+ issn = {0000-0000},
  pages = {38--47},
  publisher = {SBC},
+ address = {Porto Alegre, RS, Brasil},
  doi = {10.5753/sbseg_estendido.2025.12113},
  url = {https://sol.sbc.org.br/index.php/sbseg_estendido/article/view/36739}
 }
