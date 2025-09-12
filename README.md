@@ -27,8 +27,8 @@ MalDataGen is an advanced Python framework for generating and evaluating synthet
  
 - [📖 Overview (Informações básicas)](#overview)
 - [Video](#overview)
-- [Security worries (Preocupações com segurança)](#securty_worries)
-- [Stamps considered (Selos Considerados)](#stamps)
+- [Security worries](#securty_worries)
+- [Awards Received](#stamps)
 - [🚀 Getting Started](#getting-started)
 - [⚙️ Installation (Instalação)](#installation)
 - [🧠 Architectures](#architectures)
@@ -90,7 +90,7 @@ source ~/Python3venv/MalDataGen/bin/activate
 
 ---
 
-## ⚙️ Installation (Instalação) <a name="installation"></a>
+## ⚙️ Installation <a name="installation"></a>
 
 ```bash
 git clone https://github.com/SBSeg25/MalDataGen.git
@@ -103,6 +103,18 @@ pip install .
 ## Security worries <a name="securty_worries"></a>
 
 #### We declare that the local execution of experiments has no security worries, however the docker executing require sudo permissions being available to the docker engine.
+
+
+## 🏆 Awards Received <a name="stamps"></a>
+
+**Highlighted Artifact**  
+Awarded for outstanding contributions in the artifacts category.  
+[Details at SBSEG 25](https://doc-artefatos.github.io/sbseg2025/results.html#trabalhos-destaque-na-categoria-artefatos)
+
+**Best Tool of SBSEG 2025**  
+Recognized as the most innovative and impactful tool at the symposium.  
+[Official award document](https://sbseg2025.ppgia.pucpr.br/wp-content/uploads/2025/09/PremiacaoSBSEG-2025.pdf)
+
 
  
 ### 🚀 Run Tests
