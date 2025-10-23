@@ -8,6 +8,7 @@ __initial_data__ = '2022/06/01'
 __last_update__ = '2025/03/29'
 __credits__ = ['Kayuã Oleques']
 
+
 # MIT License
 #
 # Copyright (c) 2025 Synthetic Ocean AI
