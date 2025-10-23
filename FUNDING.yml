@@ -4,27 +4,3 @@
 
 # GitHub Sponsors (recomendado)
 github: ["Kayua", "SynDataGen"]
-
-# Open Collective (para doações coletivas)
-open_collective: "syndatagen"
-
-# Patreon (apoio recorrente)
-patreon: "kayua"
-
-# Ko-fi (doações únicas e apoio simbólico)
-ko_fi: "kayua"
-
-# Tidelift (caso o projeto tenha integração comercial)
-tidelift: "pypi/syndatagen"
-
-# Community Bridge (para financiamento colaborativo corporativo)
-community_bridge: "syndatagen"
-
-# LiberaPay (alternativa open source para apoio contínuo)
-liberapay: "kayua"
-
-# Custom URLs (por exemplo, link para financiamento institucional ou pesquisa)
-custom:
-  - "https://syndatagen.org/support"
-  - "https://buymeacoffee.com/kayua"
-  - "https://www.linkedin.com/in/kayua/"
