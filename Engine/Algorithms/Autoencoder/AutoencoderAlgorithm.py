@@ -36,53 +36,50 @@ try:
     import json
     import numpy
 
-    import tensorflow
-
-    from tensorflow.keras.metrics import Mean
-    from tensorflow.keras.models import Model
-
-    from tensorflow.keras.utils import to_categorical
-
 except ImportError as error:
     print(error)
     sys.exit(-1)
 
 
-class AutoencoderAlgorithm(Model):
+class AutoencoderAlgorithm:
     """
-    An abstract class for AutoEncoder models.
+    An abstract class for AutoEncoder models supporting both TensorFlow and PyTorch.
 
     This class provides a foundation for AutoEncoder models with methods for training,
     generating synthetic data, saving and loading models.
 
     Args:
-        @encoder_model (Model, optional):
+        @framework (str):
+            Framework to use: 'tensorflow' or 'pytorch'.
+        @encoder_model (Model):
             The encoder part of the AutoEncoder.
-        @decoder_model (Model, optional):
+        @decoder_model (Model):
             The decoder part of the AutoEncoder.
-        @loss_function (Loss, optional):
+        @loss_function (Loss):
             The loss function for training.
-        @file_name_encoder (str, optional):
+        @file_name_encoder (str):
             The file name for saving the encoder model.
-        @file_name_decoder (str, optional):
+        @file_name_decoder (str):
             The file name for saving the decoder model.
-        @models_saved_path (str, optional):
+        @models_saved_path (str):
             The path to save the models.
-        @latent_mean_distribution (float, optional):
+        @latent_mean_distribution (float):
             Mean of the latent space distribution.
-        @latent_stander_deviation (float, optional):
+        @latent_stander_deviation (float):
             Standard deviation of the latent space distribution.
-        @latent_dimension (int, optional):
+        @latent_dimension (int):
             The dimensionality of the latent space.
 
     Attributes:
+        @_framework (str):
+            Framework being used ('tensorflow' or 'pytorch').
         @_encoder (Model):
             The encoder part of the AutoEncoder.
         @_decoder (Model):
             The decoder part of the AutoEncoder.
         @_loss_function (Loss):
             Loss function for training.
-        @_total_loss_tracker (Mean):
+        @_total_loss_tracker:
             Metric for tracking total loss.
         @_file_name_encoder (str):
             File name for saving the encoder model.
@@ -90,13 +87,13 @@ class AutoencoderAlgorithm(Model):
             File name for saving the decoder model.
         @_models_saved_path (str):
             Path to save the models.
-        @_encoder_decoder_model (Model):
+        @_encoder_decoder_model:
             Combined encoder-decoder model.
 
     Example:
-        >>> encoder_model = build_encoder(input_shape=(128, 128, 3), latent_dimension=64)
-        >>> decoder_model = build_decoder(latent_dimension=64, output_shape=(128, 128, 3))
-        ...     autoencoder = AutoencoderAlgorithm(
+        >>> # TensorFlow example
+        >>> autoencoder = AutoencoderAlgorithm(
+        ...     framework='tensorflow',
         ...     encoder_model=encoder_model,
         ...     decoder_model=decoder_model,
         ...     loss_function=tensorflow.keras.losses.MeanSquaredError(),
@@ -106,12 +103,24 @@ class AutoencoderAlgorithm(Model):
         ...     latent_mean_distribution=0.0,
         ...     latent_stander_deviation=1.0,
         ...     latent_dimension=64
-        ...     )
-        ...     autoencoder.compile(optimizer=tensorflow.keras.optimizers.Adam(learning_rate=0.001))
-        >>> autoencoder.fit(train_dataset, epochs=50)
+        ... )
+        >>> # PyTorch example
+        >>> autoencoder = AutoencoderAlgorithm(
+        ...     framework='pytorch',
+        ...     encoder_model=encoder_model,
+        ...     decoder_model=decoder_model,
+        ...     loss_function=nn.MSELoss(),
+        ...     file_name_encoder="encoder_model.pt",
+        ...     file_name_decoder="decoder_model.pt",
+        ...     models_saved_path="./autoencoder_models/",
+        ...     latent_mean_distribution=0.0,
+        ...     latent_stander_deviation=1.0,
+        ...     latent_dimension=64
+        ... )
     """
 
     def __init__(self,
+                 framework,
                  encoder_model,
                  decoder_model,
                  loss_function,
@@ -121,12 +130,12 @@ class AutoencoderAlgorithm(Model):
                  latent_mean_distribution,
                  latent_stander_deviation,
                  latent_dimension):
-
-        super().__init__()
         """
         Initializes an AutoEncoder model with an encoder, decoder, and necessary configurations.
 
         Args:
+            @framework (str):
+                Framework to use: 'tensorflow' or 'pytorch'.
             @encoder_model (Model):
                 The encoder part of the AutoEncoder.
             @decoder_model (Model):
@@ -141,41 +150,14 @@ class AutoencoderAlgorithm(Model):
                 The directory path where models should be saved.
             @latent_mean_distribution (float):
                 The mean of the latent noise distribution.
-            @latent_standard_deviation (float):
+            @latent_stander_deviation (float):
                 The standard deviation of the latent noise distribution.
             @latent_dimension (int):
                 The number of dimensions in the latent space.
-
-        Attributes:
-            @_encoder (Model):
-                The encoder model.
-            @_decoder (Model):
-                The decoder model.
-            @_loss_function (Loss):
-                The loss function used for optimization.
-            @_total_loss_tracker (Mean):
-                Metric for tracking total loss during training.
-            @_latent_mean_distribution (float):
-                The mean of the latent space distribution.
-            @_latent_standard_deviation (float):
-                The standard deviation of the latent space distribution.
-            @_latent_dimension (int):
-                The dimensionality of the latent space.
-            @_file_name_encoder (str):
-                Name of the file where the encoder model is saved.
-            @_file_name_decoder (str): 
-                Name of the file where the decoder model is saved.
-            @_models_saved_path (str):
-                Path where models are saved.
-            @_encoder_decoder_model (Model):
-                A combined model that links the encoder and decoder.
-
         """
-        if not isinstance(encoder_model, tensorflow.keras.Model):
-            raise TypeError("encoder_model must be a tf.keras.Model instance.")
-
-        if not isinstance(decoder_model, tensorflow.keras.Model):
-            raise TypeError("decoder_model must be a tf.keras.Model instance.")
+        
+        if framework not in ['tensorflow', 'pytorch']:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
 
         if not isinstance(file_name_encoder, str) or not file_name_encoder:
             raise ValueError("file_name_encoder must be a non-empty string.")
@@ -198,29 +180,64 @@ class AutoencoderAlgorithm(Model):
         if not isinstance(latent_dimension, int) or latent_dimension <= 0:
             raise ValueError("latent_dimension must be a positive integer.")
 
-        # Initialize the encoder and decoder models
+        self._framework = framework
         self._encoder = encoder_model
         self._decoder = decoder_model
-
-        # Loss function and metric for tracking total loss
         self._loss_function = loss_function
-        self._total_loss_tracker = Mean(name="loss")
         self._latent_mean_distribution = latent_mean_distribution
         self._latent_stander_deviation = latent_stander_deviation
         self._latent_dimension = latent_dimension
-
-        # File names for saving models
         self._file_name_encoder = file_name_encoder
         self._file_name_decoder = file_name_decoder
-
-        # Path for saving models
         self._models_saved_path = models_saved_path
+        self.optimizer = None
 
-        # Combined encoder-decoder model
-        self._encoder_decoder_model = Model(self._encoder.input, self._decoder(self._encoder.output))
-     
+        # Framework-specific initialization
+        if self._framework == 'tensorflow':
+            import tensorflow as tf
+            from tensorflow.keras.metrics import Mean
+            from tensorflow.keras.models import Model
+            
+            self.tf = tf
+            self._total_loss_tracker = Mean(name="loss")
+            self._encoder_decoder_model = Model(self._encoder.input, self._decoder(self._encoder.output))
+            
+        else:  # pytorch
+            import torch
+            import torch.nn as nn
+            
+            self.torch = torch
+            self.nn = nn
+            self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self._encoder.to(self._device)
+            self._decoder.to(self._device)
+            self._total_loss = 0.0
+            self._num_batches = 0
+            
+            # Create encoder-decoder model
+            class EncoderDecoder(nn.Module):
+                def __init__(self, encoder, decoder):
+                    super().__init__()
+                    self.encoder = encoder
+                    self.decoder = decoder
+                
+                def forward(self, x):
+                    encoded = self.encoder(x)
+                    decoded = self.decoder(encoded)
+                    return decoded
+            
+            self._encoder_decoder_model = EncoderDecoder(self._encoder, self._decoder).to(self._device)
 
-    @tensorflow.function
+    def compile(self, optimizer, *args, **kwargs):
+        """
+        Compiles the AutoEncoder model with an optimizer.
+
+        Args:
+            optimizer: Optimizer for training.
+            *args, **kwargs: Additional arguments.
+        """
+        self.optimizer = optimizer
+
     def train_step(self, batch):
         """
         Perform a training step for the AutoEncoder.
@@ -231,36 +248,70 @@ class AutoencoderAlgorithm(Model):
         Returns:
             dict: Dictionary containing the loss value.
         """
+        if self._framework == 'tensorflow':
+            return self._train_step_tensorflow(batch)
+        else:
+            return self._train_step_pytorch(batch)
+
+    def _train_step_tensorflow(self, batch):
+        """TensorFlow implementation of train_step."""
         batch_x, batch_y = batch
 
-        # Use tf.function decorator for improved TensorFlow performance
-
-        with tensorflow.GradientTape() as gradient_ae:
-            # Forward pass: Generate reconstructed data using the encoder-decoder model
+        with self.tf.GradientTape() as gradient_ae:
             reconstructed_data = self._encoder_decoder_model(batch_x, training=True)
+            update_gradient_loss = self.tf.reduce_mean(self.tf.square(batch_y - reconstructed_data))
 
-            # Calculate the mean squared error loss between input batch and reconstructed data
-            update_gradient_loss = tensorflow.reduce_mean(tensorflow.square(batch_y - reconstructed_data))
-
-        # Calculate gradients of the loss with respect to trainable variables
         gradient_update = gradient_ae.gradient(update_gradient_loss, self._encoder_decoder_model.trainable_variables)
-
-        # Apply gradients using the optimizer
         self.optimizer.apply_gradients(zip(gradient_update, self._encoder_decoder_model.trainable_variables))
-
-        # Update the total loss metric
         self._total_loss_tracker.update_state(update_gradient_loss)
 
-        # Return a dictionary containing the current loss value
         return {"loss": self._total_loss_tracker.result()}
 
-   
+    def _train_step_pytorch(self, batch):
+        """PyTorch implementation of train_step."""
+        batch_x, batch_y = batch
+        batch_x = batch_x.to(self._device)
+        batch_y = batch_y.to(self._device)
+
+        self.optimizer.zero_grad()
+        reconstructed_data = self._encoder_decoder_model(batch_x)
+        update_gradient_loss = self.torch.mean((batch_y - reconstructed_data) ** 2)
+        
+        update_gradient_loss.backward()
+        self.optimizer.step()
+
+        self._total_loss += update_gradient_loss.item()
+        self._num_batches += 1
+
+        return {"loss": self._total_loss / self._num_batches}
+
+    def fit(self, train_dataset, epochs=1, verbose=1):
+        """
+        Trains the AutoEncoder model.
+
+        Args:
+            train_dataset: Training dataset.
+            epochs (int): Number of epochs.
+            verbose (int): Verbosity mode.
+        """
+        for epoch in range(epochs):
+            if self._framework == 'pytorch':
+                self._total_loss = 0.0
+                self._num_batches = 0
+                
+            epoch_losses = []
+            
+            for batch in train_dataset:
+                loss_dict = self.train_step(batch)
+                epoch_losses.append(loss_dict['loss'])
+            
+            if verbose:
+                avg_loss = numpy.mean([float(l) for l in epoch_losses])
+                print(f"Epoch {epoch+1}/{epochs} - loss: {avg_loss:.4f}")
 
     def get_samples(self, number_samples_per_class):
         """
         Generates synthetic data samples for each specified class using the trained decoder.
-        This function creates synthetic samples conditioned on class labels, typically used
-        when working with conditional generative models (like conditional VAEs or conditional GANs).
 
         Args:
             number_samples_per_class (dict):
@@ -274,74 +325,111 @@ class AutoencoderAlgorithm(Model):
         Returns:
             dict:
                 A dictionary where each key is a class label and the value is an array of generated samples.
-                Each array contains the synthetic samples generated for the corresponding class.
         """
+        if self._framework == 'tensorflow':
+            return self._get_samples_tensorflow(number_samples_per_class)
+        else:
+            return self._get_samples_pytorch(number_samples_per_class)
 
-        # Initialize an empty dictionary to store generated samples grouped by class label
+    def _get_samples_tensorflow(self, number_samples_per_class):
+        """TensorFlow implementation of get_samples."""
+        from tensorflow.keras.utils import to_categorical
+        
         generated_data = {}
 
-        # Loop through each class label and the corresponding number of samples to generate
         for label_class, number_instances in number_samples_per_class["classes"].items():
-            # Create a batch of one-hot encoded class labels, all set to the current class
-            # Example: if label_class = 1 and number_instances = 3, this creates:
-            # [[0, 1], [0, 1], [0, 1]]
             label_samples_generated = to_categorical(
                 [label_class] * number_instances,
                 num_classes=number_samples_per_class["number_classes"]
             )
 
-            # Generate random noise vectors (latent space vectors) for each sample
-            # Shape: (number_instances, latent_dimension)
             latent_noise = numpy.random.normal(
-                self._latent_mean_distribution,  # Mean of the latent distribution
-                self._latent_stander_deviation,  # Standard deviation of the latent distribution
+                self._latent_mean_distribution,
+                self._latent_stander_deviation,
                 (number_instances, self._latent_dimension)
             )
 
-            # Use the decoder to generate synthetic samples from the latent space and class labels
-            # Inputs: (latent vectors, class labels)
-            # 'verbose=0' suppresses any output from the decoder's predict method
             generated_samples = self._decoder.predict([latent_noise, label_samples_generated], verbose=0)
-
-            # Round the output values to the nearest integer
-            # This is useful if the output is binary (like 0/1) or for discrete data types
             generated_samples = numpy.rint(generated_samples)
-
-            # Store the generated samples in the dictionary under the corresponding class label
             generated_data[label_class] = generated_samples
 
-        # Return the dictionary containing all generated samples, organized by class
         return generated_data
 
+    def _get_samples_pytorch(self, number_samples_per_class):
+        """PyTorch implementation of get_samples."""
+        generated_data = {}
+        self._decoder.eval()
+
+        with self.torch.no_grad():
+            for label_class, number_instances in number_samples_per_class["classes"].items():
+                label_samples_generated = self.torch.zeros(
+                    number_instances,
+                    number_samples_per_class["number_classes"],
+                    device=self._device
+                )
+                label_samples_generated[:, label_class] = 1
+
+                latent_noise = self.torch.randn(
+                    number_instances,
+                    self._latent_dimension,
+                    device=self._device
+                ) * self._latent_stander_deviation + self._latent_mean_distribution
+
+                generated_samples = self._decoder(latent_noise, label_samples_generated)
+                generated_samples = self.torch.round(generated_samples)
+                generated_data[label_class] = generated_samples.cpu().numpy()
+
+        self._decoder.train()
+        return generated_data
 
     def save_model(self, directory, file_name):
         """
-        Save the encoder and decoder models in both JSON and H5 formats.
+        Save the encoder and decoder models.
 
         Args:
             directory (str): Directory where models will be saved.
             file_name (str): Base file name for saving models.
         """
+        if self._framework == 'tensorflow':
+            self._save_model_tensorflow(directory, file_name)
+        else:
+            self._save_model_pytorch(directory, file_name)
+
+    def _save_model_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of save_model."""
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        # Construct file names for encoder and decoder models
         encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder")
         decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder")
 
-        # Save encoder model
         self._save_model_to_json(self._encoder, f"{encoder_file_name}.json")
         self._encoder.save_weights(f"{encoder_file_name}.weights.h5")
 
-        # Save decoder model
         self._save_model_to_json(self._decoder, f"{decoder_file_name}.json")
         self._decoder.save_weights(f"{decoder_file_name}.weights.h5")
 
+    def _save_model_pytorch(self, directory, file_name):
+        """PyTorch implementation of save_model."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
+        decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder.pt")
+
+        self.torch.save({
+            'model_state_dict': self._encoder.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict() if self.optimizer else None
+        }, encoder_file_name)
+
+        self.torch.save({
+            'model_state_dict': self._decoder.state_dict()
+        }, decoder_file_name)
 
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
-        Save model architecture to a JSON file.
+        Save model architecture to a JSON file (TensorFlow only).
 
         Args:
             model (Model): Model to save.
@@ -349,7 +437,6 @@ class AutoencoderAlgorithm(Model):
         """
         with open(file_path, "w") as json_file:
             json.dump(model.to_json(), json_file)
-
 
     def load_models(self, directory, file_name):
         """
@@ -359,14 +446,43 @@ class AutoencoderAlgorithm(Model):
             directory (str): Directory where models are stored.
             file_name (str): Base file name for loading models.
         """
+        if self._framework == 'tensorflow':
+            self._load_models_tensorflow(directory, file_name)
+        else:
+            self._load_models_pytorch(directory, file_name)
 
-        # Construct file names for encoder and decoder models
-        encoder_file_name = "{}_encoder".format(file_name)
-        decoder_file_name = "{}_decoder".format(file_name)
+    def _load_models_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of load_models."""
+        from tensorflow.keras.models import model_from_json
+        
+        encoder_file_name = f"{file_name}_encoder"
+        decoder_file_name = f"{file_name}_decoder"
 
-        # Load the encoder and decoder models from the specified directory
-        self._encoder = self._save_neural_network_model(encoder_file_name, directory)
-        self._decoder = self._save_neural_network_model(decoder_file_name, directory)
+        encoder_path = os.path.join(directory, f"fold_{encoder_file_name}")
+        decoder_path = os.path.join(directory, f"fold_{decoder_file_name}")
+
+        with open(f"{encoder_path}.json", 'r') as json_file:
+            encoder_json = json.load(json_file)
+            self._encoder = model_from_json(encoder_json)
+            self._encoder.load_weights(f"{encoder_path}.weights.h5")
+
+        with open(f"{decoder_path}.json", 'r') as json_file:
+            decoder_json = json.load(json_file)
+            self._decoder = model_from_json(decoder_json)
+            self._decoder.load_weights(f"{decoder_path}.weights.h5")
+
+    def _load_models_pytorch(self, directory, file_name):
+        """PyTorch implementation of load_models."""
+        encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
+        decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder.pt")
+
+        encoder_checkpoint = self.torch.load(encoder_file_name, map_location=self._device)
+        self._encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
+        if self.optimizer and encoder_checkpoint.get('optimizer_state_dict'):
+            self.optimizer.load_state_dict(encoder_checkpoint['optimizer_state_dict'])
+
+        decoder_checkpoint = self.torch.load(decoder_file_name, map_location=self._device)
+        self._decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
 
     @property
     def decoder(self):
@@ -379,7 +495,11 @@ class AutoencoderAlgorithm(Model):
     @decoder.setter
     def decoder(self, decoder):
         self._decoder = decoder
+        if self._framework == 'pytorch':
+            self._decoder.to(self._device)
 
     @encoder.setter
     def encoder(self, encoder):
         self._encoder = encoder
+        if self._framework == 'pytorch':
+            self._encoder.to(self._device)
