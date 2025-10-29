@@ -5,7 +5,7 @@ __author__ = 'Synthetic Ocean AI - Team'
 __email__ = 'syntheticoceanai@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
+__last_update__ = '2025/10/29'
 __credits__ = ['Synthetic Ocean AI']
 
 # MIT License
@@ -30,28 +30,39 @@ __credits__ = ['Synthetic Ocean AI']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
+# Detect available framework
+FRAMEWORK = None
 try:
-    import sys
+    import tensorflow as tf
+    from tensorflow.keras.layers import Dense, Layer as TFLayer
+    FRAMEWORK = 'tensorflow'
+except ImportError:
+    pass
 
-    import tensorflow
+try:
+    import torch
+    import torch.nn as nn
+    if FRAMEWORK is None:
+        FRAMEWORK = 'pytorch'
+except ImportError:
+    pass
 
-    from tensorflow.keras.layers import Dense
-    from tensorflow.keras.layers import Layer
-
-except ImportError as error:
-    print(error)
+if FRAMEWORK is None:
+    print("Error: Neither TensorFlow nor PyTorch is installed.")
     sys.exit(-1)
 
 DEFAULT_GROUP_NORMALIZATION = 1
 
 
-class AttentionBlock(Layer):
+class AttentionBlock:
     """
-    AttentionBlock
+    AttentionBlock (Framework Agnostic)
 
     Implements a scaled dot-product attention mechanism for use in deep learning models.
     The block includes query, key, and value projections, followed by a final projection
-    layer. Additionally, it integrates group normalization to normalize the attention outputs.
+    layer. This implementation automatically adapts to either TensorFlow or PyTorch.
 
     This block is inspired by the attention mechanism described in the paper:
 
@@ -65,7 +76,7 @@ class AttentionBlock(Layer):
             The number of groups for normalization. Defaults to `DEFAULT_GROUP_NORMALIZATION`.
 
     Methods:
-        @call(inputs):
+        @forward(inputs) / @call(inputs):
             Computes the forward pass for the attention block. This method calculates the attention
             scores, applies them to the input, and returns the augmented input after normalization.
 
@@ -74,17 +85,35 @@ class AttentionBlock(Layer):
         >>> output = attention_block(inputs)
     """
 
+    def __new__(cls, units, groups=DEFAULT_GROUP_NORMALIZATION, **kwargs):
+        """
+        Factory method to instantiate the appropriate framework-specific implementation.
+        
+        Args:
+            units (int): Number of units for the dense layers in the attention mechanism.
+            groups (int, optional): Number of groups for normalization.
+            **kwargs: Additional keyword arguments.
+            
+        Returns:
+            AttentionBlockTF or AttentionBlockPyTorch instance depending on available framework.
+        """
+        if FRAMEWORK == 'tensorflow':
+            return AttentionBlockTF(units, groups, **kwargs)
+        elif FRAMEWORK == 'pytorch':
+            return AttentionBlockPyTorch(units, groups, **kwargs)
+
+
+class AttentionBlockTF(TFLayer):
+    """TensorFlow implementation of AttentionBlock."""
+
     def __init__(self, units, groups=DEFAULT_GROUP_NORMALIZATION, **kwargs):
         """
-        Initializes the AttentionBlock by defining the layers and configuration.
+        Initializes the AttentionBlock for TensorFlow.
 
         Args:
-            units (int):
-                Number of units for the dense layers in the attention mechanism.
-            groups (int, optional):
-                Number of groups for normalization. Defaults to `DEFAULT_GROUP_NORMALIZATION`.
-            **kwargs:
-                Additional keyword arguments for the parent Layer class.
+            units (int): Number of units for the dense layers.
+            groups (int, optional): Number of groups for normalization.
+            **kwargs: Additional keyword arguments for the parent Layer class.
         """
         self.units = units
         self.groups = groups
@@ -104,12 +133,11 @@ class AttentionBlock(Layer):
             inputs (Tensor): The input tensor of shape (batch_size, height, embedding_dim).
 
         Returns:
-            Tensor: The output tensor after applying the attention mechanism and projection. 
-                    The shape is the same as the input tensor.
+            Tensor: The output tensor after applying attention mechanism and projection.
         """
-        batch_size = tensorflow.shape(inputs)[0]
-        height = tensorflow.shape(inputs)[1]
-        scale = tensorflow.cast(self.units, tensorflow.float32) ** (-0.5)
+        batch_size = tf.shape(inputs)[0]
+        height = tf.shape(inputs)[1]
+        scale = tf.cast(self.units, tf.float32) ** (-0.5)
 
         # Compute query, key, and value projections
         query = self.query_weights(inputs)
@@ -117,15 +145,71 @@ class AttentionBlock(Layer):
         value = self.value_weights(inputs)
 
         # Compute attention scores using scaled dot-product attention
-        attention_score = tensorflow.einsum("bhc, bHc->bhH", query, key) * scale
-        attention_score = tensorflow.reshape(attention_score, [batch_size, height, height])
+        attention_score = tf.einsum("bhc,bHc->bhH", query, key) * scale
+        attention_score = tf.reshape(attention_score, [batch_size, height, height])
 
         # Apply softmax to obtain attention weights
-        attention_score = tensorflow.nn.softmax(attention_score, -1)
-        attention_score = tensorflow.reshape(attention_score, [batch_size, height, height])
+        attention_score = tf.nn.softmax(attention_score, -1)
+        attention_score = tf.reshape(attention_score, [batch_size, height, height])
 
         # Apply attention weights to the value tensor
-        projection = tensorflow.einsum("bhH,bHc->bhc", attention_score, value)
+        projection = tf.einsum("bhH,bHc->bhc", attention_score, value)
+        projection = self.projection_weights(projection)
+
+        # Add the original input to the projection to form the output
+        return inputs + projection
+
+
+class AttentionBlockPyTorch(nn.Module):
+    """PyTorch implementation of AttentionBlock."""
+
+    def __init__(self, units, groups=DEFAULT_GROUP_NORMALIZATION, **kwargs):
+        """
+        Initializes the AttentionBlock for PyTorch.
+
+        Args:
+            units (int): Number of units for the linear layers.
+            groups (int, optional): Number of groups for normalization.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__()
+        self.units = units
+        self.groups = groups
+
+        # Define linear layers for query, key, value, and final projection
+        self.query_weights = nn.Linear(units, units)
+        self.key_weights = nn.Linear(units, units)
+        self.value_weights = nn.Linear(units, units)
+        self.projection_weights = nn.Linear(units, units)
+
+    def forward(self, inputs):
+        """
+        Performs the forward pass of the attention block.
+
+        Args:
+            inputs (Tensor): The input tensor of shape (batch_size, height, embedding_dim).
+
+        Returns:
+            Tensor: The output tensor after applying attention mechanism and projection.
+        """
+        batch_size, height, _ = inputs.shape
+        scale = self.units ** (-0.5)
+
+        # Compute query, key, and value projections
+        query = self.query_weights(inputs)
+        key = self.key_weights(inputs)
+        value = self.value_weights(inputs)
+
+        # Compute attention scores using scaled dot-product attention
+        attention_score = torch.einsum("bhc,bHc->bhH", query, key) * scale
+        attention_score = attention_score.reshape(batch_size, height, height)
+
+        # Apply softmax to obtain attention weights
+        attention_score = torch.softmax(attention_score, dim=-1)
+        attention_score = attention_score.reshape(batch_size, height, height)
+
+        # Apply attention weights to the value tensor
+        projection = torch.einsum("bhH,bHc->bhc", attention_score, value)
         projection = self.projection_weights(projection)
 
         # Add the original input to the projection to form the output
