@@ -5,7 +5,7 @@ __author__ = 'Synthetic Ocean AI - Team'
 __email__ = 'syntheticoceanai@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
+__last_update__ = '2025/10/29'
 __credits__ = ['Synthetic Ocean AI']
 
 # MIT License
@@ -30,22 +30,34 @@ __credits__ = ['Synthetic Ocean AI']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
+# Detect available framework
+FRAMEWORK = None
 try:
+    import tensorflow as tf
+    from tensorflow.keras.layers import Layer as TFLayer
+    FRAMEWORK = 'tensorflow'
+except ImportError:
+    pass
 
-    import sys
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    if FRAMEWORK is None:
+        FRAMEWORK = 'pytorch'
+except ImportError:
+    pass
 
-    import tensorflow
-
-    from tensorflow.keras.layers import Layer
-
-except ImportError as error:
-    print(error)
+if FRAMEWORK is None:
+    print("Error: Neither TensorFlow nor PyTorch is installed.")
     sys.exit(-1)
 
 
-class Softplus(Layer):
+class Softplus:
     """
-    Softplus Activation Function Layer.
+    Softplus Activation Function Layer (Framework Agnostic).
 
     The Softplus function is defined as:
 
@@ -60,48 +72,77 @@ class Softplus(Layer):
 
     Methods
     -------
-    call(neural_network_flow: tensorflow.Tensor) -> tf.Tensor
+    forward(neural_network_flow) / call(neural_network_flow)
         Applies the Softplus activation function to the input tensor and returns the output tensor.
 
-    Example
+    Example (TensorFlow)
     -------
-    >>> import tensorflow
-    ...    # Example tensor with shape (batch_size, sequence_length, 8) — divisible by 2
-    ...    input_tensor = tensorflow.random.uniform((2, 5, 8))
-    ...    # Instantiate and apply SoftPlus
-    ...    softplus_layer = SoftPlus()
+    >>> import tensorflow as tf
+    ...    # Example tensor with shape (batch_size, sequence_length, 8)
+    ...    input_tensor = tf.random.uniform((2, 5, 8))
+    ...    # Instantiate and apply Softplus
+    ...    softplus_layer = Softplus()
     ...    output_tensor = softplus_layer(input_tensor)
-    ...    # Output shape (batch_size, sequence_length, 4)
-    ...    print(output_tensor.shape)
-    >>>
+    ...    # Output shape (batch_size, sequence_length, 8)
+    ...    print(output_tensor.shape)  # (2, 5, 8)
+
+    Example (PyTorch)
+    -------
+    >>> import torch
+    ...    # Example tensor with shape (batch_size, sequence_length, 8)
+    ...    input_tensor = torch.randn(2, 5, 8)
+    ...    # Instantiate and apply Softplus
+    ...    softplus_layer = Softplus()
+    ...    output_tensor = softplus_layer(input_tensor)
+    ...    # Output shape (batch_size, sequence_length, 8)
+    ...    print(output_tensor.shape)  # torch.Size([2, 5, 8])
     """
+
+    def __new__(cls, **kwargs):
+        """
+        Factory method to instantiate the appropriate framework-specific implementation.
+        
+        Args:
+            **kwargs: Additional keyword arguments.
+            
+        Returns:
+            SoftplusTF or SoftplusPyTorch instance.
+        """
+        if FRAMEWORK == 'tensorflow':
+            return SoftplusTF(**kwargs)
+        elif FRAMEWORK == 'pytorch':
+            return SoftplusPyTorch(**kwargs)
+
+
+class SoftplusTF(TFLayer):
+    """TensorFlow implementation of Softplus."""
 
     def __init__(self, **kwargs):
         """
-        Initializes the Softplus activation function layer.
+        Initializes the Softplus activation function layer for TensorFlow.
 
         Parameters
         ----------
         **kwargs
             Additional keyword arguments passed to the base Layer class.
         """
-        super(Softplus, self).__init__(**kwargs)
+        super(SoftplusTF, self).__init__(**kwargs)
 
-    def call(self, neural_network_flow: tensorflow.Tensor) -> tensorflow.Tensor:
+    def call(self, neural_network_flow):
         """
         Applies the Softplus activation function to the input tensor.
 
         Parameters
         ----------
-            neural_network_flow : tensorflow.Tensor
-                Input tensor with any shape.
+        neural_network_flow : tf.Tensor
+            Input tensor with any shape.
 
         Returns
         -------
-        tensorflow.Tensor
+        tf.Tensor
             Output tensor with the same shape as input, after applying Softplus transformation.
         """
-        return tensorflow.math.log(tensorflow.math.exp(neural_network_flow) + 1)
+        return tf.math.log(tf.math.exp(neural_network_flow) + 1.0)
 
     def compute_output_shape(self, input_shape):
         """
@@ -109,8 +150,8 @@ class Softplus(Layer):
 
         Parameters
         ----------
-            input_shape : tuple
-                Shape of the input tensor.
+        input_shape : tuple
+            Shape of the input tensor.
 
         Returns
         -------
@@ -118,3 +159,51 @@ class Softplus(Layer):
             Output shape, identical to input shape.
         """
         return input_shape
+
+
+class SoftplusPyTorch(nn.Module):
+    """PyTorch implementation of Softplus."""
+
+    def __init__(self, **kwargs):
+        """
+        Initializes the Softplus activation function layer for PyTorch.
+
+        Parameters
+        ----------
+        **kwargs
+            Additional keyword arguments.
+        """
+        super(SoftplusPyTorch, self).__init__()
+
+    def forward(self, neural_network_flow):
+        """
+        Applies the Softplus activation function to the input tensor.
+
+        Parameters
+        ----------
+        neural_network_flow : torch.Tensor
+            Input tensor with any shape.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor with the same shape as input, after applying Softplus transformation.
+        """
+        return F.softplus(neural_network_flow)
+
+    def extra_repr(self):
+        """
+        Returns a string representation of the layer.
+
+        Returns
+        -------
+        str
+            String representation of the layer.
+        """
+        return 'softplus'
+
+
+# Convenience function to get current framework
+def get_framework():
+    """Returns the currently active framework ('tensorflow' or 'pytorch')."""
+    return FRAMEWORK
