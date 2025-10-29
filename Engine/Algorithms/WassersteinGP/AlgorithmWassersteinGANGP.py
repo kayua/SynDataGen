@@ -721,6 +721,52 @@ class WassersteinGPAlgorithm:
     def file_name_discriminator(self, value):
         self._file_name_discriminator = value
 
+    @file_name_generator.setter
+    def file_name_generator(self, value: str) -> None:
+        """Set the generator model save filename.
+
+        Args:
+            value: The filename pattern to use.
+        """
+        self._file_name_generator = value
+
     @property
-    def file_name_generator(self):
-        return self._file
+    def models_saved_path(self) -> str:
+        """Get the path for saving models.
+
+        Returns:
+            The directory path where models are saved.
+        """
+        return self._models_saved_path
+
+    @models_saved_path.setter
+    def models_saved_path(self, value: str) -> None:
+        """Set the path for saving models.
+
+        Args:
+            value: The directory path to use for saving models.
+        """
+        self._models_saved_path = value
+
+    @property
+    def discriminator_steps(self) -> int:
+        """Get the number of discriminator steps per iteration.
+
+        Returns:
+            The number of discriminator training steps per GAN iteration.
+        """
+        return self._discriminator_steps
+
+    @discriminator_steps.setter
+    def discriminator_steps(self, value: int) -> None:
+        """Set the number of discriminator steps per iteration.
+
+        Args:
+            value: The number of steps (must be positive integer).
+
+        Raises:
+            ValueError: If value is not a positive integer.
+        """
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError("Discriminator steps must be a positive integer")
+        self._discriminator_steps = value
