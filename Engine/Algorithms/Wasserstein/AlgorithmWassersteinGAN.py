@@ -34,32 +34,18 @@ __credits__ = ['Kayuã Oleques']
 try:
     import os
     import sys
-
     import json
     import numpy
-
-    import tensorflow
-
-    from abc import ABC
-
-    from typing import Any
-
-    from typing import Callable
-
-    from tensorflow.keras import Model
-
-    from tensorflow.keras.utils import to_categorical
-    from tensorflow.keras.losses import BinaryCrossentropy
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
 
 
-class WassersteinAlgorithm(Model):
+class WassersteinAlgorithm:
     """
     Implementation of the original Wasserstein Generative Adversarial Network (WGAN) algorithm.
-    This class extends the Keras Model class to create a trainable WGAN model.
+    Supports both TensorFlow and PyTorch frameworks.
 
     The original WGAN (Arjovsky et al., 2017) improves upon standard GANs by:
     - Using the Wasserstein (Earth Mover's) distance as the loss metric
@@ -86,16 +72,39 @@ class WassersteinAlgorithm(Model):
     Proceedings of the 34th International Conference on Machine Learning, PMLR 70:214-223.
     Available at: http://proceedings.mlr.press/v70/arjovsky17a.html
 
-    Key Components:
-    ---------------
-    - Generator model that creates synthetic samples
-    - Critic model (instead of discriminator) that scores sample realism
-    - Weight clipping to enforce Lipschitz constraint
-    - Custom training step with multiple critic updates per generator update
+    Args:
+        @framework (str):
+            Framework to use: 'tensorflow' or 'pytorch'.
+        @generator_model (Model):
+            The generator model.
+        @discriminator_model (Model):
+            The discriminator/critic model.
+        @latent_dimension (int):
+            The dimensionality of the latent space.
+        @generator_loss_fn (Callable):
+            Loss function for the generator.
+        @discriminator_loss_fn (Callable):
+            Loss function for the discriminator.
+        @file_name_discriminator (str):
+            File name for saving the discriminator model.
+        @file_name_generator (str):
+            File name for saving the generator model.
+        @models_saved_path (str):
+            Directory path for saving models.
+        @latent_mean_distribution (float):
+            Mean of the latent space distribution.
+        @latent_standard_deviation (float):
+            Standard deviation of the latent space distribution.
+        @smoothing_rate (float):
+            Label smoothing rate.
+        @discriminator_steps (int):
+            Number of discriminator training steps per generator step.
+        @clip_value (float):
+            Value for weight clipping (default: 0.01).
     """
 
-
     def __init__(self,
+                 framework,
                  generator_model,
                  discriminator_model,
                  latent_dimension,
@@ -108,11 +117,24 @@ class WassersteinAlgorithm(Model):
                  latent_standard_deviation,
                  smoothing_rate,
                  discriminator_steps,
-                 clip_value=0.01,
-                 *args,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
+                 clip_value=0.01):
+        
+        if framework not in ['tensorflow', 'pytorch']:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
+        
+        if not isinstance(latent_dimension, int) or latent_dimension <= 0:
+            raise ValueError("Latent dimension must be a positive integer")
+        
+        if not isinstance(discriminator_steps, int) or discriminator_steps <= 0:
+            raise ValueError("Discriminator steps must be a positive integer")
+        
+        if not 0 <= smoothing_rate <= 1:
+            raise ValueError("Smoothing rate must be between 0 and 1")
+        
+        if latent_standard_deviation <= 0:
+            raise ValueError("Standard deviation must be positive")
 
+        self._framework = framework
         self._generator = generator_model
         self._discriminator = discriminator_model
         self._latent_dimension = latent_dimension
@@ -129,33 +151,76 @@ class WassersteinAlgorithm(Model):
         self._generator_optimizer = None
         self._discriminator_optimizer = None
 
+        # Framework-specific initialization
+        if self._framework == 'tensorflow':
+            import tensorflow as tf
+            self.tf = tf
+            
+        else:  # pytorch
+            import torch
+            import torch.nn as nn
+            
+            self.torch = torch
+            self.nn = nn
+            self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self._generator.to(self._device)
+            self._discriminator.to(self._device)
+            self._d_loss_total = 0.0
+            self._g_loss_total = 0.0
+            self._num_batches = 0
+
     def compile(self, optimizer_generator, optimizer_discriminator,
-                loss_generator, loss_discriminator, *args, **kwargs):
-        super().compile()
+                loss_generator=None, loss_discriminator=None):
+        """
+        Compiles the WGAN model with optimizers and loss functions.
+
+        Args:
+            optimizer_generator: Optimizer for the generator.
+            optimizer_discriminator: Optimizer for the discriminator.
+            loss_generator: Loss function for the generator (optional, uses init value if None).
+            loss_discriminator: Loss function for the discriminator (optional, uses init value if None).
+        """
         self._generator_optimizer = optimizer_generator
         self._discriminator_optimizer = optimizer_discriminator
-        self._generator_loss_fn = loss_generator
-        self._discriminator_loss_fn = loss_discriminator
+        
+        if loss_generator is not None:
+            self._generator_loss_fn = loss_generator
+        if loss_discriminator is not None:
+            self._discriminator_loss_fn = loss_discriminator
 
     def train_step(self, batch):
+        """
+        Perform a training step for the WGAN.
+
+        Args:
+            batch: Input data batch (features, labels).
+
+        Returns:
+            dict: Dictionary containing discriminator and generator losses.
+        """
+        if self._framework == 'tensorflow':
+            return self._train_step_tensorflow(batch)
+        else:
+            return self._train_step_pytorch(batch)
+
+    def _train_step_tensorflow(self, batch):
+        """TensorFlow implementation of train_step."""
         real_feature, real_samples_label = batch
-        batch_size = tensorflow.shape(real_feature)[0]
-        real_samples_label = tensorflow.expand_dims(real_samples_label, axis=-1)
+        batch_size = self.tf.shape(real_feature)[0]
+        real_samples_label = self.tf.expand_dims(real_samples_label, axis=-1)
 
         # === Critic (Discriminator) Training ===
         for _ in range(self._discriminator_steps):
-            latent_space = tensorflow.random.normal(
+            latent_space = self.tf.random.normal(
                 (batch_size, self._latent_dimension),
                 mean=self._latent_mean_distribution,
                 stddev=self._latent_standard_deviation
             )
 
-            with tensorflow.GradientTape() as disc_tape:
+            with self.tf.GradientTape() as disc_tape:
                 fake_feature = self._generator([latent_space, real_samples_label], training=False)
-
                 real_output = self._discriminator([real_feature, real_samples_label], training=True)
                 fake_output = self._discriminator([fake_feature, real_samples_label], training=True)
-
                 d_loss = self._discriminator_loss_fn(real_output, fake_output)
 
             gradients = disc_tape.gradient(d_loss, self._discriminator.trainable_variables)
@@ -163,16 +228,16 @@ class WassersteinAlgorithm(Model):
 
             # Apply weight clipping to enforce 1-Lipschitz constraint
             for weight in self._discriminator.trainable_weights:
-                weight.assign(tensorflow.clip_by_value(weight, -self._clip_value, self._clip_value))
+                weight.assign(self.tf.clip_by_value(weight, -self._clip_value, self._clip_value))
 
         # === Generator Training ===
-        latent_space = tensorflow.random.normal(
+        latent_space = self.tf.random.normal(
             (batch_size, self._latent_dimension),
             mean=self._latent_mean_distribution,
             stddev=self._latent_standard_deviation
         )
 
-        with tensorflow.GradientTape() as gen_tape:
+        with self.tf.GradientTape() as gen_tape:
             fake_feature = self._generator([latent_space, real_samples_label], training=True)
             fake_output = self._discriminator([fake_feature, real_samples_label], training=False)
             g_loss = self._generator_loss_fn(fake_output)
@@ -182,85 +247,217 @@ class WassersteinAlgorithm(Model):
 
         return {"d_loss": d_loss, "g_loss": g_loss}
 
+    def _train_step_pytorch(self, batch):
+        """PyTorch implementation of train_step."""
+        real_feature, real_samples_label = batch
+        real_feature = real_feature.to(self._device)
+        real_samples_label = real_samples_label.to(self._device).unsqueeze(-1)
+        batch_size = real_feature.shape[0]
+
+        # === Critic (Discriminator) Training ===
+        for _ in range(self._discriminator_steps):
+            latent_space = self.torch.randn(
+                batch_size, self._latent_dimension,
+                device=self._device
+            ) * self._latent_standard_deviation + self._latent_mean_distribution
+
+            self._discriminator_optimizer.zero_grad()
+            
+            with self.torch.no_grad():
+                fake_feature = self._generator(latent_space, real_samples_label)
+            
+            real_output = self._discriminator(real_feature, real_samples_label)
+            fake_output = self._discriminator(fake_feature, real_samples_label)
+            d_loss = self._discriminator_loss_fn(real_output, fake_output)
+
+            d_loss.backward()
+            self._discriminator_optimizer.step()
+
+            # Apply weight clipping to enforce 1-Lipschitz constraint
+            for param in self._discriminator.parameters():
+                param.data.clamp_(-self._clip_value, self._clip_value)
+
+        # === Generator Training ===
+        latent_space = self.torch.randn(
+            batch_size, self._latent_dimension,
+            device=self._device
+        ) * self._latent_standard_deviation + self._latent_mean_distribution
+
+        self._generator_optimizer.zero_grad()
+        
+        fake_feature = self._generator(latent_space, real_samples_label)
+        
+        with self.torch.no_grad():
+            self._discriminator.eval()
+        fake_output = self._discriminator(fake_feature, real_samples_label)
+        self._discriminator.train()
+        
+        g_loss = self._generator_loss_fn(fake_output)
+
+        g_loss.backward()
+        self._generator_optimizer.step()
+
+        self._d_loss_total += d_loss.item()
+        self._g_loss_total += g_loss.item()
+        self._num_batches += 1
+
+        return {
+            "d_loss": self._d_loss_total / self._num_batches,
+            "g_loss": self._g_loss_total / self._num_batches
+        }
+
+    def fit(self, train_dataset, epochs=1, verbose=1):
+        """
+        Trains the WGAN model.
+
+        Args:
+            train_dataset: Training dataset.
+            epochs (int): Number of epochs.
+            verbose (int): Verbosity mode.
+        """
+        for epoch in range(epochs):
+            if self._framework == 'pytorch':
+                self._d_loss_total = 0.0
+                self._g_loss_total = 0.0
+                self._num_batches = 0
+            
+            epoch_d_losses = []
+            epoch_g_losses = []
+            
+            for batch in train_dataset:
+                loss_dict = self.train_step(batch)
+                epoch_d_losses.append(loss_dict['d_loss'])
+                epoch_g_losses.append(loss_dict['g_loss'])
+            
+            if verbose:
+                avg_d_loss = numpy.mean([float(l) for l in epoch_d_losses])
+                avg_g_loss = numpy.mean([float(l) for l in epoch_g_losses])
+                print(f"Epoch {epoch+1}/{epochs} - d_loss: {avg_d_loss:.4f} - g_loss: {avg_g_loss:.4f}")
+
     def get_samples(self, number_samples_per_class):
         """
         Generates synthetic samples for each specified class using the trained generator.
 
-        This method creates samples conditioned on class labels, using random noise vectors
-        and the generator to produce the samples.
-
         Args:
             number_samples_per_class (dict): A dictionary containing:
-                - "classes" (dict): Mapping of class labels to the number of samples to generate for each class.
-                - "number_classes" (int): Total number of classes (used for one-hot encoding).
+                - "classes" (dict): Mapping of class labels to the number of samples to generate.
+                - "number_classes" (int): Total number of classes (for one-hot encoding).
 
         Returns:
-            dict: A dictionary where each key is a class label and the value is an array of generated samples.
+            dict: A dictionary where each key is a class label and value is array of generated samples.
         """
+        if self._framework == 'tensorflow':
+            return self._get_samples_tensorflow(number_samples_per_class)
+        else:
+            return self._get_samples_pytorch(number_samples_per_class)
 
-        # Dictionary to store generated samples for each class.
+    def _get_samples_tensorflow(self, number_samples_per_class):
+        """TensorFlow implementation of get_samples."""
+        from tensorflow.keras.utils import to_categorical
+        
         generated_data = {}
 
-        # Loop through each class and the desired number of samples for that class.
         for label_class, number_instances in number_samples_per_class["classes"].items():
-            # Create one-hot encoded labels for all samples of the current class.
-            label_samples_generated = to_categorical([label_class] * number_instances,
-                                                     num_classes=number_samples_per_class["number_classes"])
+            label_samples_generated = to_categorical(
+                [label_class] * number_instances,
+                num_classes=number_samples_per_class["number_classes"]
+            )
 
-            # Sample random noise vectors from a normal distribution.
-            latent_noise = numpy.random.normal(loc=self._latent_mean_distribution,
-                                               scale=self._latent_standard_deviation,
-                                               size=(number_instances, self._latent_dimension))
+            latent_noise = numpy.random.normal(
+                loc=self._latent_mean_distribution,
+                scale=self._latent_standard_deviation,
+                size=(number_instances, self._latent_dimension)
+            )
 
-            # Generate synthetic samples using the generator.
             generated_samples = self._generator.predict([latent_noise, label_samples_generated], verbose=0)
-
-            # Round the generated samples to integer values
-            # (if samples are intended to be binary, e.g., images with pixel values 0 or 1).
             generated_samples = numpy.rint(generated_samples)
-
-            # Store generated samples for the current class.
             generated_data[label_class] = generated_samples
 
-        # Return the dictionary containing generated samples for all requested classes.
+        return generated_data
+
+    def _get_samples_pytorch(self, number_samples_per_class):
+        """PyTorch implementation of get_samples."""
+        generated_data = {}
+        self._generator.eval()
+
+        with self.torch.no_grad():
+            for label_class, number_instances in number_samples_per_class["classes"].items():
+                label_samples_generated = self.torch.zeros(
+                    number_instances,
+                    number_samples_per_class["number_classes"],
+                    device=self._device
+                )
+                label_samples_generated[:, label_class] = 1
+
+                latent_noise = self.torch.randn(
+                    number_instances,
+                    self._latent_dimension,
+                    device=self._device
+                ) * self._latent_standard_deviation + self._latent_mean_distribution
+
+                generated_samples = self._generator(latent_noise, label_samples_generated)
+                generated_samples = self.torch.round(generated_samples)
+                generated_data[label_class] = generated_samples.cpu().numpy()
+
+        self._generator.train()
         return generated_data
 
     def save_model(self, directory, file_name):
         """
-        Save the encoder and decoder models in both JSON and H5 formats.
+        Save the generator and discriminator models.
 
         Args:
             directory (str): Directory where models will be saved.
             file_name (str): Base file name for saving models.
         """
+        if self._framework == 'tensorflow':
+            self._save_model_tensorflow(directory, file_name)
+        else:
+            self._save_model_pytorch(directory, file_name)
+
+    def _save_model_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of save_model."""
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        # Construct file names for encoder and decoder models
         generator_file_name = os.path.join(directory, f"fold_{file_name}_generator")
         discriminator_file_name = os.path.join(directory, f"fold_{file_name}_discriminator")
 
-        # Save encoder model
         self._save_model_to_json(self._generator, f"{generator_file_name}.json")
         self._generator.save_weights(f"{generator_file_name}.weights.h5")
 
-        # Save decoder model
         self._save_model_to_json(self._discriminator, f"{discriminator_file_name}.json")
         self._discriminator.save_weights(f"{discriminator_file_name}.weights.h5")
 
+    def _save_model_pytorch(self, directory, file_name):
+        """PyTorch implementation of save_model."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        generator_file_name = os.path.join(directory, f"fold_{file_name}_generator.pt")
+        discriminator_file_name = os.path.join(directory, f"fold_{file_name}_discriminator.pt")
+
+        self.torch.save({
+            'model_state_dict': self._generator.state_dict(),
+            'optimizer_state_dict': self._generator_optimizer.state_dict() if self._generator_optimizer else None
+        }, generator_file_name)
+
+        self.torch.save({
+            'model_state_dict': self._discriminator.state_dict(),
+            'optimizer_state_dict': self._discriminator_optimizer.state_dict() if self._discriminator_optimizer else None
+        }, discriminator_file_name)
 
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
-        Save model architecture to a JSON file.
+        Save model architecture to a JSON file (TensorFlow only).
 
         Args:
-            model (tf.keras.Model): Model to save.
+            model (Model): Model to save.
             file_path (str): Path to the JSON file.
         """
         with open(file_path, "w") as json_file:
             json.dump(model.to_json(), json_file)
-
 
     def load_models(self, directory, file_name):
         """
@@ -270,252 +467,167 @@ class WassersteinAlgorithm(Model):
             directory (str): Directory where models are stored.
             file_name (str): Base file name for loading models.
         """
+        if self._framework == 'tensorflow':
+            self._load_models_tensorflow(directory, file_name)
+        else:
+            self._load_models_pytorch(directory, file_name)
 
-        # Construct file names for generator and discriminator models
-        generator_file_name = "{}_generator".format(file_name)
-        discriminator_file_name = "{}_discriminator".format(file_name)
+    def _load_models_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of load_models."""
+        from tensorflow.keras.models import model_from_json
+        
+        generator_file_name = f"{file_name}_generator"
+        discriminator_file_name = f"{file_name}_discriminator"
 
-        # Load the generator and discriminator models from the specified directory
-        self._generator = self._save_neural_network_model(generator_file_name, directory)
-        self._discriminator = self._save_neural_network_model(discriminator_file_name, directory)
+        generator_path = os.path.join(directory, f"fold_{generator_file_name}")
+        discriminator_path = os.path.join(directory, f"fold_{discriminator_file_name}")
 
+        with open(f"{generator_path}.json", 'r') as json_file:
+            generator_json = json.load(json_file)
+            self._generator = model_from_json(generator_json)
+            self._generator.load_weights(f"{generator_path}.weights.h5")
+
+        with open(f"{discriminator_path}.json", 'r') as json_file:
+            discriminator_json = json.load(json_file)
+            self._discriminator = model_from_json(discriminator_json)
+            self._discriminator.load_weights(f"{discriminator_path}.weights.h5")
+
+    def _load_models_pytorch(self, directory, file_name):
+        """PyTorch implementation of load_models."""
+        generator_file_name = os.path.join(directory, f"fold_{file_name}_generator.pt")
+        discriminator_file_name = os.path.join(directory, f"fold_{file_name}_discriminator.pt")
+
+        generator_checkpoint = self.torch.load(generator_file_name, map_location=self._device)
+        self._generator.load_state_dict(generator_checkpoint['model_state_dict'])
+        if self._generator_optimizer and generator_checkpoint.get('optimizer_state_dict'):
+            self._generator_optimizer.load_state_dict(generator_checkpoint['optimizer_state_dict'])
+
+        discriminator_checkpoint = self.torch.load(discriminator_file_name, map_location=self._device)
+        self._discriminator.load_state_dict(discriminator_checkpoint['model_state_dict'])
+        if self._discriminator_optimizer and discriminator_checkpoint.get('optimizer_state_dict'):
+            self._discriminator_optimizer.load_state_dict(discriminator_checkpoint['optimizer_state_dict'])
+
+    # Properties for discriminator
     @property
-    def discriminator(self) -> Any:
-        """Get the discriminator model instance.
-
-        Returns:
-            The discriminator model used in GAN training.
-        """
+    def discriminator(self):
         return self._discriminator
 
     @discriminator.setter
-    def discriminator(self, value: Any) -> None:
-        """Set the discriminator model instance.
-
-        Args:
-            value: The discriminator model to set.
-        """
+    def discriminator(self, value):
         self._discriminator = value
+        if self._framework == 'pytorch':
+            self._discriminator.to(self._device)
 
+    # Properties for generator
     @property
-    def latent_dimension(self) -> int:
-        """Get the dimension of the latent space.
+    def generator(self):
+        return self._generator
 
-        Returns:
-            The size of the latent space dimension (positive integer).
-        """
+    @generator.setter
+    def generator(self, value):
+        self._generator = value
+        if self._framework == 'pytorch':
+            self._generator.to(self._device)
+
+    # Properties for latent dimension
+    @property
+    def latent_dimension(self):
         return self._latent_dimension
 
     @latent_dimension.setter
-    def latent_dimension(self, value: int) -> None:
-        """Set the dimension of the latent space.
-
-        Args:
-            value: The latent dimension size (must be positive).
-
-        Raises:
-            ValueError: If value is not a positive integer.
-        """
+    def latent_dimension(self, value):
         if not isinstance(value, int) or value <= 0:
             raise ValueError("Latent dimension must be a positive integer")
         self._latent_dimension = value
 
+    # Properties for loss functions
     @property
-    def discriminator_loss_fn(self) -> Callable:
-        """Get the discriminator loss function.
-
-        Returns:
-            The loss function used for discriminator training.
-        """
+    def discriminator_loss_fn(self):
         return self._discriminator_loss_fn
 
     @discriminator_loss_fn.setter
-    def discriminator_loss_fn(self, value: Callable) -> None:
-        """Set the discriminator loss function.
-
-        Args:
-            value: The loss function to use for discriminator training.
-        """
+    def discriminator_loss_fn(self, value):
         self._discriminator_loss_fn = value
 
     @property
-    def generator_loss_fn(self) -> Callable:
-        """Get the generator loss function.
-
-        Returns:
-            The loss function used for generator training.
-        """
+    def generator_loss_fn(self):
         return self._generator_loss_fn
 
     @generator_loss_fn.setter
-    def generator_loss_fn(self, value: Callable) -> None:
-        """Set the generator loss function.
-
-        Args:
-            value: The loss function to use for generator training.
-        """
+    def generator_loss_fn(self, value):
         self._generator_loss_fn = value
 
+    # Properties for smoothing and latent distribution
     @property
-    def gradient_penalty_weight(self) -> float:
-        """Get the weight for gradient penalty in WGAN-GP.
-
-        Returns:
-            The weight factor for gradient penalty term.
-        """
-        return self._gradient_penalty_weight
-
-    @gradient_penalty_weight.setter
-    def gradient_penalty_weight(self, value: float) -> None:
-        """Set the weight for gradient penalty in WGAN-GP.
-
-        Args:
-            value: The penalty weight (must be non-negative).
-
-        Raises:
-            ValueError: If value is negative.
-        """
-        if value < 0:
-            raise ValueError("Gradient penalty weight cannot be negative")
-        self._gradient_penalty_weight = value
-
-    @property
-    def smooth_rate(self) -> float:
-        """Get the label smoothing rate.
-
-        Returns:
-            The rate used for one-sided label smoothing.
-        """
+    def smooth_rate(self):
         return self._smooth_rate
 
     @smooth_rate.setter
-    def smooth_rate(self, value: float) -> None:
-        """Set the label smoothing rate.
-
-        Args:
-            value: The smoothing rate (typically between 0 and 0.3).
-
-        Raises:
-            ValueError: If value is not between 0 and 1.
-        """
+    def smooth_rate(self, value):
         if not 0 <= value <= 1:
             raise ValueError("Smoothing rate must be between 0 and 1")
         self._smooth_rate = value
 
     @property
-    def latent_mean_distribution(self) -> float:
-        """Get the mean of the latent space distribution.
-
-        Returns:
-            The mean value used for latent space sampling.
-        """
+    def latent_mean_distribution(self):
         return self._latent_mean_distribution
 
     @latent_mean_distribution.setter
-    def latent_mean_distribution(self, value: float) -> None:
-        """Set the mean of the latent space distribution.
-
-        Args:
-            value: The mean value for latent distribution.
-        """
+    def latent_mean_distribution(self, value):
         self._latent_mean_distribution = value
 
     @property
-    def latent_stander_deviation(self) -> float:
-        """Get the standard deviation of the latent space distribution.
+    def latent_standard_deviation(self):
+        return self._latent_standard_deviation
 
-        Returns:
-            The standard deviation used for latent space sampling.
-        """
-        return self._latent_stander_deviation
-
-    @latent_stander_deviation.setter
-    def latent_stander_deviation(self, value: float) -> None:
-        """Set the standard deviation of the latent space distribution.
-
-        Args:
-            value: The standard deviation (must be positive).
-
-        Raises:
-            ValueError: If value is not positive.
-        """
+    @latent_standard_deviation.setter
+    def latent_standard_deviation(self, value):
         if value <= 0:
             raise ValueError("Standard deviation must be positive")
-        self._latent_stander_deviation = value
+        self._latent_standard_deviation = value
 
+    # Properties for file names and paths
     @property
-    def file_name_discriminator(self) -> str:
-        """Get the discriminator model save filename.
-
-        Returns:
-            The filename pattern for saving discriminator models.
-        """
+    def file_name_discriminator(self):
         return self._file_name_discriminator
 
     @file_name_discriminator.setter
-    def file_name_discriminator(self, value: str) -> None:
-        """Set the discriminator model save filename.
-
-        Args:
-            value: The filename pattern to use.
-        """
+    def file_name_discriminator(self, value):
         self._file_name_discriminator = value
 
     @property
-    def file_name_generator(self) -> str:
-        """Get the generator model save filename.
-
-        Returns:
-            The filename pattern for saving generator models.
-        """
+    def file_name_generator(self):
         return self._file_name_generator
 
     @file_name_generator.setter
-    def file_name_generator(self, value: str) -> None:
-        """Set the generator model save filename.
-
-        Args:
-            value: The filename pattern to use.
-        """
+    def file_name_generator(self, value):
         self._file_name_generator = value
 
     @property
-    def models_saved_path(self) -> str:
-        """Get the path for saving models.
-
-        Returns:
-            The directory path where models are saved.
-        """
+    def models_saved_path(self):
         return self._models_saved_path
 
     @models_saved_path.setter
-    def models_saved_path(self, value: str) -> None:
-        """Set the path for saving models.
-
-        Args:
-            value: The directory path to use for saving models.
-        """
+    def models_saved_path(self, value):
         self._models_saved_path = value
 
+    # Properties for training parameters
     @property
-    def discriminator_steps(self) -> int:
-        """Get the number of discriminator steps per iteration.
-
-        Returns:
-            The number of discriminator training steps per GAN iteration.
-        """
+    def discriminator_steps(self):
         return self._discriminator_steps
 
     @discriminator_steps.setter
-    def discriminator_steps(self, value: int) -> None:
-        """Set the number of discriminator steps per iteration.
-
-        Args:
-            value: The number of steps (must be positive integer).
-
-        Raises:
-            ValueError: If value is not a positive integer.
-        """
+    def discriminator_steps(self, value):
         if not isinstance(value, int) or value <= 0:
             raise ValueError("Discriminator steps must be a positive integer")
         self._discriminator_steps = value
+
+    @property
+    def clip_value(self):
+        return self._clip_value
+
+    @clip_value.setter
+    def clip_value(self, value):
+        if value <= 0:
+            raise ValueError("Clip value must be positive")
+        self._clip_value = value
