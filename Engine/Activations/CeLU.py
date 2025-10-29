@@ -5,7 +5,7 @@ __author__ = 'Kayuã Oleques Paim'
 __email__ = 'kayuaolequesp@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
+__last_update__ = '2025/10/29'
 __credits__ = ['Kayuã Oleques']
 
 # MIT License
@@ -30,58 +30,91 @@ __credits__ = ['Kayuã Oleques']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
+# Detect available framework
+FRAMEWORK = None
 try:
+    import tensorflow as tf
+    from tensorflow.keras.layers import Layer as TFLayer
+    FRAMEWORK = 'tensorflow'
+except ImportError:
+    pass
 
-    import sys
-    import tensorflow
+try:
+    import torch
+    import torch.nn as nn
+    if FRAMEWORK is None:
+        FRAMEWORK = 'pytorch'
+except ImportError:
+    pass
 
-    from tensorflow.keras.layers import Layer
-
-except ImportError as error:
-    print(error)
+if FRAMEWORK is None:
+    print("Error: Neither TensorFlow nor PyTorch is installed.")
     sys.exit(-1)
 
 
-class CeLU(Layer):
+class CeLU:
     """
-    Continuously Differentiable Exponential Linear Unit (CeLU) Activation Function Layer.
-
+    Continuously Differentiable Exponential Linear Unit (CeLU) Activation Function Layer (Framework Agnostic).
+    
     The CeLU activation function is defined as:
-
         celu(x) = alpha * (exp(x / alpha) - 1) for x < 0
         celu(x) = x for x >= 0
-
+    
     where `alpha` is a scaling parameter that controls the activation's shape.
-
+    
     Attributes
     ----------
     alpha : float
         Scaling factor for the negative values (default is 1.0).
-
+    
     Methods
     -------
-    call(neural_network_flow: tf.Tensor) -> tf.Tensor
+    forward(neural_network_flow) / call(neural_network_flow)
         Applies the CeLU activation function to the input tensor and returns the output tensor.
-
-    Example
+    
+    Example (TensorFlow)
     -------
-    >>> import tensorflow
-    ...    # Example tensor with shape (batch_size, sequence_length, 8)
-    ...    input_tensor = tensorflow.random.uniform((2, 5, 8))
-    ...    # Instantiate and apply CELU
-    ...    celu_layer = CeLU()
+    >>> import tensorflow as tf
+    ...    input_tensor = tf.random.uniform((2, 5, 8))
+    ...    celu_layer = CeLU(alpha=1.0)
     ...    output_tensor = celu_layer(input_tensor)
-    ...    # Output shape (batch_size, sequence_length, 8)
-    ...    print(output_tensor.shape)
-    >>>
-
-
+    ...    print(output_tensor.shape)  # (2, 5, 8)
+    
+    Example (PyTorch)
+    -------
+    >>> import torch
+    ...    input_tensor = torch.randn(2, 5, 8)
+    ...    celu_layer = CeLU(alpha=1.0)
+    ...    output_tensor = celu_layer(input_tensor)
+    ...    print(output_tensor.shape)  # torch.Size([2, 5, 8])
     """
+    
+    def __new__(cls, alpha=1.0, **kwargs):
+        """
+        Factory method to instantiate the appropriate framework-specific implementation.
+        
+        Args:
+            alpha (float): Scaling factor for the negative values (default is 1.0).
+            **kwargs: Additional keyword arguments.
+            
+        Returns:
+            CeLUTF or CeLUPyTorch instance.
+        """
+        if FRAMEWORK == 'tensorflow':
+            return CeLUTF(alpha, **kwargs)
+        elif FRAMEWORK == 'pytorch':
+            return CeLUPyTorch(alpha, **kwargs)
 
+
+class CeLUTF(TFLayer):
+    """TensorFlow implementation of CeLU."""
+    
     def __init__(self, alpha=1.0, **kwargs):
         """
-        Initializes the CELU activation function layer.
-
+        Initializes the CELU activation function layer for TensorFlow.
+        
         Parameters
         ----------
         alpha : float, optional
@@ -89,41 +122,96 @@ class CeLU(Layer):
         **kwargs
             Additional keyword arguments passed to the base Layer class.
         """
-        super(CeLU, self).__init__(**kwargs)
+        super(CeLUTF, self).__init__(**kwargs)
         self.alpha = alpha
-
-    def call(self, neural_network_flow: tensorflow.Tensor) -> tensorflow.Tensor:
+    
+    def call(self, neural_network_flow):
         """
         Applies the CELU activation function to the input tensor.
-
+        
         Parameters
         ----------
-            neural_network_flow : tf.Tensor
-                Input tensor with any shape.
-
+        neural_network_flow : tf.Tensor
+            Input tensor with any shape.
+        
         Returns
         -------
         tf.Tensor
             Output tensor with the same shape as input, after applying CELU transformation.
         """
-        return tensorflow.where(
+        return tf.where(
             neural_network_flow < 0,
-            self.alpha * (tensorflow.exp(neural_network_flow / self.alpha) - 1),
+            self.alpha * (tf.exp(neural_network_flow / self.alpha) - 1),
             neural_network_flow
         )
-
+    
     def compute_output_shape(self, input_shape):
         """
         Computes the output shape, which remains the same as the input shape.
-
+        
         Parameters
         ----------
-            input_shape : tuple
-                Shape of the input tensor.
-
+        input_shape : tuple
+            Shape of the input tensor.
+        
         Returns
         -------
         tuple
             Output shape, identical to input shape.
         """
         return input_shape
+
+
+class CeLUPyTorch(nn.Module):
+    """PyTorch implementation of CeLU."""
+    
+    def __init__(self, alpha=1.0, **kwargs):
+        """
+        Initializes the CELU activation function layer for PyTorch.
+        
+        Parameters
+        ----------
+        alpha : float, optional
+            Scaling factor for the negative values (default is 1.0).
+        **kwargs
+            Additional keyword arguments.
+        """
+        super(CeLUPyTorch, self).__init__()
+        self.alpha = alpha
+    
+    def forward(self, neural_network_flow):
+        """
+        Applies the CELU activation function to the input tensor.
+        
+        Parameters
+        ----------
+        neural_network_flow : torch.Tensor
+            Input tensor with any shape.
+        
+        Returns
+        -------
+        torch.Tensor
+            Output tensor with the same shape as input, after applying CELU transformation.
+        """
+        return torch.where(
+            neural_network_flow < 0,
+            self.alpha * (torch.exp(neural_network_flow / self.alpha) - 1),
+            neural_network_flow
+        )
+    
+    def extra_repr(self):
+        """
+        Returns a string representation of the layer parameters.
+        
+        Returns
+        -------
+        str
+            String representation showing alpha parameter.
+        """
+        return f'alpha={self.alpha}'
+
+
+# Convenience function to get current framework
+def get_framework():
+    """Returns the currently active framework ('tensorflow' or 'pytorch')."""
+    return FRAMEWORK
