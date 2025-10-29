@@ -5,7 +5,7 @@ __author__ = 'Kayuã Oleques Paim'
 __email__ = 'kayuaolequesp@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
+__last_update__ = '2025/10/29'
 __credits__ = ['Kayuã Oleques']
 
 # MIT License
@@ -30,21 +30,34 @@ __credits__ = ['Kayuã Oleques']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
+# Detect available framework
+FRAMEWORK = None
 try:
-    import sys
+    import tensorflow as tf
+    from tensorflow.keras.layers import Layer as TFLayer
+    FRAMEWORK = 'tensorflow'
+except ImportError:
+    pass
 
-    import tensorflow
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    if FRAMEWORK is None:
+        FRAMEWORK = 'pytorch'
+except ImportError:
+    pass
 
-    from tensorflow.keras.layers import Layer
-
-except ImportError as error:
-    print(error)
+if FRAMEWORK is None:
+    print("Error: Neither TensorFlow nor PyTorch is installed.")
     sys.exit(-1)
 
 
-class ELU(Layer):
+class ELU:
     """
-    Exponential Linear Unit (ELU) Activation Function Layer.
+    Exponential Linear Unit (ELU) Activation Function Layer (Framework Agnostic).
 
     The Exponential Linear Unit (ELU) was introduced by Clevert et al. (2016)
     in the paper "Fast and Accurate Deep Network Learning by Exponential Linear Units (ELUs)"
@@ -62,25 +75,49 @@ class ELU(Layer):
 
     Methods
     -------
-        call(neural_network_flow: tf.Tensor) -> tf.Tensor
+        forward(neural_network_flow) / call(neural_network_flow)
             Applies the ELU activation function to the input tensor and returns the output tensor.
 
-    Example
+    Example (TensorFlow)
     -------
-    >>> import tensorflow
-    ...    # Example tensor with shape (batch_size, feature_dim)
-    ...    input_tensor = tensorflow.random.uniform((2, 5))
-    ...    # Instantiate and apply ELU
+    >>> import tensorflow as tf
+    ...    input_tensor = tf.random.uniform((2, 5))
     ...    elu_layer = ELU(alpha=1.0)
     ...    output_tensor = elu_layer(input_tensor)
-    ...    # Output shape (batch_size, feature_dim)
-    ...    print(output_tensor.shape)
-    >>>
+    ...    print(output_tensor.shape)  # (2, 5)
+
+    Example (PyTorch)
+    -------
+    >>> import torch
+    ...    input_tensor = torch.randn(2, 5)
+    ...    elu_layer = ELU(alpha=1.0)
+    ...    output_tensor = elu_layer(input_tensor)
+    ...    print(output_tensor.shape)  # torch.Size([2, 5])
     """
+
+    def __new__(cls, alpha=1.0, **kwargs):
+        """
+        Factory method to instantiate the appropriate framework-specific implementation.
+        
+        Args:
+            alpha (float): The scaling parameter for negative values (default is 1.0).
+            **kwargs: Additional keyword arguments.
+            
+        Returns:
+            ELUTF or ELUPyTorch instance.
+        """
+        if FRAMEWORK == 'tensorflow':
+            return ELUTF(alpha, **kwargs)
+        elif FRAMEWORK == 'pytorch':
+            return ELUPyTorch(alpha, **kwargs)
+
+
+class ELUTF(TFLayer):
+    """TensorFlow implementation of ELU."""
 
     def __init__(self, alpha=1.0, **kwargs):
         """
-        Initializes the ELU activation function layer.
+        Initializes the ELU activation function layer for TensorFlow.
 
         Parameters
         ----------
@@ -89,32 +126,24 @@ class ELU(Layer):
         **kwargs
             Additional keyword arguments passed to the base Layer class.
         """
-        super(ELU, self).__init__(**kwargs)
+        super(ELUTF, self).__init__(**kwargs)
         self.alpha = alpha
 
-    def call(self, neural_network_flow: tensorflow.Tensor) -> tensorflow.Tensor:
+    def call(self, neural_network_flow):
         """
         Applies the ELU activation function to the input tensor.
 
         Parameters
         ----------
-            neural_network_flow : tf.Tensor
-                Input tensor with any shape.
+        neural_network_flow : tf.Tensor
+            Input tensor with any shape.
 
         Returns
         -------
         tf.Tensor
             Output tensor with the same shape as input, after applying ELU transformation.
-
-        Example
-        -------
-        >>> input_tensor = tensorflow.random.uniform((2, 5))
-        ...     elu = ELU(alpha=1.0)
-        ...     output = elu(input_tensor)
-        ...     print(output.shape)
-        >>>     (2, 5)
         """
-        return tensorflow.nn.elu(neural_network_flow) * self.alpha
+        return tf.nn.elu(neural_network_flow) * self.alpha
 
     def compute_output_shape(self, input_shape):
         """
@@ -122,8 +151,8 @@ class ELU(Layer):
 
         Parameters
         ----------
-            input_shape : tuple
-                Shape of the input tensor.
+        input_shape : tuple
+            Shape of the input tensor.
 
         Returns
         -------
@@ -131,3 +160,54 @@ class ELU(Layer):
             Output shape, identical to input shape.
         """
         return input_shape
+
+
+class ELUPyTorch(nn.Module):
+    """PyTorch implementation of ELU."""
+
+    def __init__(self, alpha=1.0, **kwargs):
+        """
+        Initializes the ELU activation function layer for PyTorch.
+
+        Parameters
+        ----------
+        alpha : float, optional
+            The scaling parameter for negative values (default is 1.0).
+        **kwargs
+            Additional keyword arguments.
+        """
+        super(ELUPyTorch, self).__init__()
+        self.alpha = alpha
+
+    def forward(self, neural_network_flow):
+        """
+        Applies the ELU activation function to the input tensor.
+
+        Parameters
+        ----------
+        neural_network_flow : torch.Tensor
+            Input tensor with any shape.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor with the same shape as input, after applying ELU transformation.
+        """
+        return F.elu(neural_network_flow, alpha=self.alpha)
+
+    def extra_repr(self):
+        """
+        Returns a string representation of the layer parameters.
+
+        Returns
+        -------
+        str
+            String representation showing alpha parameter.
+        """
+        return f'alpha={self.alpha}'
+
+
+# Convenience function to get current framework
+def get_framework():
+    """Returns the currently active framework ('tensorflow' or 'pytorch')."""
+    return FRAMEWORK
