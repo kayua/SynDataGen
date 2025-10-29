@@ -37,20 +37,18 @@ try:
     import sys
     import json
     import numpy
-
-    import tensorflow
     from typing import Any
-
-    from tensorflow.keras.utils import to_categorical
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
 
 
-class LatentDiffusionAlgorithm(tensorflow.keras.Model):
+class LatentDiffusionAlgorithm:
     """
-    Implements a diffusion process using UNet architectures for generating synthetic data.
+    A framework-agnostic implementation of a diffusion process using UNet architectures 
+    for generating synthetic data. Supports both TensorFlow and PyTorch.
+    
     This model integrates an autoencoder and a diffusion network, enabling both data
     reconstruction and controlled generative modeling through Gaussian diffusion.
 
@@ -58,6 +56,8 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
     multiple training stages, and customizable hyperparameters to adapt to different tasks.
 
     Attributes:
+        @framework (str):
+            Framework to use: 'tensorflow' or 'pytorch'.
         @ema (float):
             Exponential moving average (EMA) decay rate for stabilizing training updates.
         @margin (float):
@@ -82,23 +82,16 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
             Optimizer used for training the diffusion model.
         @optimizer_autoencoder (Optimizer):
             Optimizer responsible for training the autoencoder components.
-        @ensemble_encoder_decoder (Model):
-            Combined encoder-decoder model for data reconstruction.
-
-    Raises:
-        ValueError:
-            Raised in cases where:
-            - The number of time steps is non-positive.
-            - The EMA decay rate is outside the range (0,1).
-            - The embedding dimension is invalid (<=0).
 
     References:
-        - Ho, J., Jain, A., & Abbeel, P. (2020). "Denoising LatentDiffusion Probabilistic Models."
+        - Ho, J., Jain, A., & Abbeel, P. (2020). "Denoising Diffusion Probabilistic Models."
         Advances in Neural Information Processing Systems (NeurIPS).
         Available at: https://arxiv.org/abs/2006.11239
 
     Example:
+        >>> # TensorFlow example
         >>> diffusion_model = LatentDiffusionAlgorithm(
+        ...     framework='tensorflow',
         ...     first_unet_model=primary_unet,
         ...     second_unet_model=ema_unet,
         ...     encoder_model_image=encoder,
@@ -112,11 +105,28 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
         ...     embedding_dimension=128,
         ...     train_stage='all'
         ... )
-        >>> diffusion_model.set_stage_training('diffusion')
-        >>> diffusion_model.train_step(data)
+        
+        >>> # PyTorch example
+        >>> diffusion_model = LatentDiffusionAlgorithm(
+        ...     framework='pytorch',
+        ...     first_unet_model=primary_unet,
+        ...     second_unet_model=ema_unet,
+        ...     encoder_model_image=encoder,
+        ...     decoder_model_image=decoder,
+        ...     gdf_util=gaussian_diffusion,
+        ...     optimizer_autoencoder=torch.optim.Adam(params, lr=1e-4),
+        ...     optimizer_diffusion=torch.optim.Adam(params, lr=2e-4),
+        ...     time_steps=1000,
+        ...     ema=0.999,
+        ...     margin=0.1,
+        ...     embedding_dimension=128,
+        ...     train_stage='all'
+        ... )
     """
 
-    def __init__(self, first_unet_model,
+    def __init__(self, 
+                 framework,
+                 first_unet_model,
                  second_unet_model,
                  encoder_model_image,
                  decoder_model_image,
@@ -128,15 +138,12 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
                  margin,
                  embedding_dimension,
                  train_stage='all'):
-
-        super().__init__()
         """
-        Initializes the DiffusionModel with provided sub-models, optimizers, and hyperparameters.
-
-        This constructor sets up the network structure, including the autoencoder, diffusion
-        models, and EMA components, ensuring flexibility for different training strategies.
+        Initializes the LatentDiffusionAlgorithm with provided sub-models, optimizers, and hyperparameters.
 
         Args:
+            @framework (str):
+                Framework to use: 'tensorflow' or 'pytorch'.
             @first_unet_model (Model):
                 Primary UNet model for diffusion-based generation.
             @second_unet_model (Model):
@@ -160,15 +167,29 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
             @embedding_dimension (int):
                 Dimensionality of the embedding space.
             @train_stage (str, optional):
-             Current training stage ('all', 'diffusion', etc.), defaulting to 'all'.
+                Current training stage ('all', 'diffusion', etc.), defaulting to 'all'.
 
         Raises:
             ValueError:
+                If framework is not 'tensorflow' or 'pytorch'.
                 If time_steps is <= 0.
                 If ema is not within the (0,1) range.
                 If embedding_dimension is <= 0.
         """
+        
+        if framework not in ['tensorflow', 'pytorch']:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
+            
+        if not isinstance(time_steps, int) or time_steps <= 0:
+            raise ValueError("time_steps must be a positive integer.")
+            
+        if not isinstance(ema, (int, float)) or not (0 < ema < 1):
+            raise ValueError("ema must be a float between 0 and 1.")
+            
+        if not isinstance(embedding_dimension, int) or embedding_dimension <= 0:
+            raise ValueError("embedding_dimension must be a positive integer.")
 
+        self._framework = framework
         self._ema = ema
         self._margin = margin
         self._gdf_util = gdf_util
@@ -182,6 +203,24 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
         self._optimizer_diffusion = optimizer_diffusion
         self._optimizer_autoencoder = optimizer_autoencoder
 
+        # Framework-specific initialization
+        if self._framework == 'tensorflow':
+            import tensorflow as tf
+            self.tf = tf
+            self._device = None  # TensorFlow handles device placement automatically
+            
+        else:  # pytorch
+            import torch
+            import torch.nn as nn
+            self.torch = torch
+            self.nn = nn
+            self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            
+            # Move models to device
+            self._network.to(self._device)
+            self._second_unet_model.to(self._device)
+            self._encoder_model_data.to(self._device)
+            self._decoder_model_data.to(self._device)
 
     def set_stage_training(self, training_stage):
         """
@@ -203,9 +242,6 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
             dict: A dictionary with the computed loss for diffusion.
         """
         raw_data, label = data
-
-        loss_encoder, loss_diffusion = None, None
-
         loss_diffusion = self.train_diffusion_model(raw_data, label)
         self.update_ema_weights()
         return {"Diffusion_loss": loss_diffusion if loss_diffusion is not None else 0}
@@ -214,511 +250,544 @@ class LatentDiffusionAlgorithm(tensorflow.keras.Model):
         """
         Performs a single training step for the diffusion model.
 
-        This method applies the forward diffusion process (adding noise to the data),
-        predicts the noise using the model, computes the loss, and updates the model weights.
-
         Args:
-            data (tf.Tensor): Input data embeddings (e.g., image or text embeddings).
-            ground_truth (tf.Tensor): Corresponding class labels or conditioning embeddings.
+            data: Input data embeddings (e.g., image or text embeddings).
+            ground_truth: Corresponding class labels or conditioning embeddings.
 
         Returns:
-            tf.Tensor: The computed loss for this training step.
+            The computed loss for this training step.
         """
+        if self._framework == 'tensorflow':
+            return self._train_diffusion_model_tensorflow(data, ground_truth)
+        else:
+            return self._train_diffusion_model_pytorch(data, ground_truth)
 
-        # Labels (conditioning information) and input data embeddings
+    def _train_diffusion_model_tensorflow(self, data, ground_truth):
+        """TensorFlow implementation of train_diffusion_model."""
         embedding_label = ground_truth
         embedding_data_expanded = data
+        batch_size = self.tf.shape(data)[0]
 
-        # Batch size of the current data batch
-        batch_size = tensorflow.shape(data)[0]
+        random_time_steps = self.tf.random.uniform(
+            minval=0,
+            maxval=self._time_steps,
+            shape=(batch_size,),
+            dtype=self.tf.int32
+        )
 
-        # Sample random time steps for each sample in the batch (each sample can be at a different step t)
-        random_time_steps = tensorflow.random.uniform(minval=0,
-                                                      maxval=self._time_steps,
-                                                      shape=(batch_size,),
-                                                      dtype=tensorflow.int32)
-        loss_diffusion = 0
-        # Track gradients for the diffusion model's weights
-        with tensorflow.GradientTape() as tape:
+        with self.tf.GradientTape() as tape:
+            random_noise = self.tf.random.normal(
+                shape=self.tf.shape(embedding_data_expanded),
+                dtype=embedding_data_expanded.dtype
+            )
 
-            # Sample random noise to add to the data (same shape as the data itself)
-            random_noise = tensorflow.random.normal(shape=tensorflow.shape(embedding_data_expanded),
-                                                    dtype=embedding_data_expanded.dtype)
+            embedding_with_noise = self._gdf_util.q_sample(
+                embedding_data_expanded,
+                random_time_steps,
+                random_noise
+            )
 
-            # Apply forward diffusion process (add noise based on the current time step t)
-            embedding_with_noise = self._gdf_util.q_sample(embedding_data_expanded,
-                                                           random_time_steps,
-                                                           random_noise)
+            predicted_noise = self._network(
+                [embedding_with_noise, random_time_steps, embedding_label],
+                training=True
+            )
 
-            # Predict noise using the diffusion model (network), conditioned on time and label
-            predicted_noise = self._network([embedding_with_noise, random_time_steps, embedding_label], training=True)
+            loss_diffusion = self.tf.reduce_mean(self.tf.square(random_noise - predicted_noise))
 
-            # Compute the loss by comparing the true noise with the predicted noise
-            loss_diffusion = self.loss(random_noise, predicted_noise)
-
-        # Compute gradients for the model's trainable weights
         gradients = tape.gradient(loss_diffusion, self._network.trainable_weights)
-
-        # Apply gradients using the diffusion model's optimizer
         self._optimizer_diffusion.apply_gradients(zip(gradients, self._network.trainable_weights))
 
-        # Return the computed diffusion loss for monitoring
         return loss_diffusion
+
+    def _train_diffusion_model_pytorch(self, data, ground_truth):
+        """PyTorch implementation of train_diffusion_model."""
+        data = data.to(self._device)
+        ground_truth = ground_truth.to(self._device)
+        
+        embedding_label = ground_truth
+        embedding_data_expanded = data
+        batch_size = data.shape[0]
+
+        random_time_steps = self.torch.randint(
+            0,
+            self._time_steps,
+            (batch_size,),
+            device=self._device,
+            dtype=self.torch.long
+        )
+
+        self._optimizer_diffusion.zero_grad()
+        
+        random_noise = self.torch.randn_like(embedding_data_expanded)
+
+        embedding_with_noise = self._gdf_util.q_sample(
+            embedding_data_expanded,
+            random_time_steps,
+            random_noise
+        )
+
+        predicted_noise = self._network(
+            embedding_with_noise,
+            random_time_steps,
+            embedding_label
+        )
+
+        loss_diffusion = self.nn.functional.mse_loss(random_noise, predicted_noise)
+
+        loss_diffusion.backward()
+        self._optimizer_diffusion.step()
+
+        return loss_diffusion.item()
 
     def update_ema_weights(self):
         """
         Updates the weights of the second UNet model using exponential moving average.
         """
+        if self._framework == 'tensorflow':
+            self._update_ema_weights_tensorflow()
+        else:
+            self._update_ema_weights_pytorch()
+
+    def _update_ema_weights_tensorflow(self):
+        """TensorFlow implementation of update_ema_weights."""
         for weight, ema_weight in zip(self._network.weights, self._second_unet_model.weights):
             ema_weight.assign(self._ema * ema_weight + (1 - self._ema) * weight)
 
+    def _update_ema_weights_pytorch(self):
+        """PyTorch implementation of update_ema_weights."""
+        with self.torch.no_grad():
+            for param, ema_param in zip(self._network.parameters(), self._second_unet_model.parameters()):
+                ema_param.data.mul_(self._ema).add_(param.data, alpha=1 - self._ema)
+
     def generate_data(self, labels, batch_size):
         """
-        Generates synthetic data by reversing the diffusion process, starting from pure noise
-        and iteratively denoising to create data samples conditioned on class labels.
+        Generates synthetic data by reversing the diffusion process.
 
         Args:
-            labels (tf.Tensor): Class labels used to condition the generated data (e.g., class embeddings).
+            labels: Class labels used to condition the generated data.
             batch_size (int): Number of data samples to generate in a single batch.
 
         Returns:
-            numpy.ndarray: Generated synthetic data samples after reversing the diffusion process.
+            numpy.ndarray: Generated synthetic data samples.
         """
+        if self._framework == 'tensorflow':
+            return self._generate_data_tensorflow(labels, batch_size)
+        else:
+            return self._generate_data_pytorch(labels, batch_size)
 
-        # Start with random noise in the embedding space
-        embedding_diffusion = tensorflow.random.normal(
-            shape=(labels.shape[0], self._embedding_dimension, 1),  # Shape of the noise tensor
-            dtype=tensorflow.float32
+    def _generate_data_tensorflow(self, labels, batch_size):
+        """TensorFlow implementation of generate_data."""
+        embedding_diffusion = self.tf.random.normal(
+            shape=(labels.shape[0], self._embedding_dimension, 1),
+            dtype=self.tf.float32
         )
 
-        # Reshape labels to ensure they have the correct shape for conditioning
-        labels_vector = tensorflow.expand_dims(labels, axis=-1)
+        labels_vector = self.tf.expand_dims(labels, axis=-1)
 
-        # Reverse the diffusion process by iterating over the time steps (from T to 0)
         for time_step in reversed(range(0, self._time_steps)):
+            array_time = self.tf.cast(
+                self.tf.fill([labels_vector.shape[0]], time_step),
+                dtype=self.tf.int32
+            )
 
-            # Create an array with the current time step for each sample in the batch
-            array_time = tensorflow.cast(tensorflow.fill([labels_vector.shape[0]], time_step),
-                                         dtype=tensorflow.int32)
+            predicted_noise = self._network.predict(
+                [embedding_diffusion, array_time, labels_vector],
+                verbose=0,
+                batch_size=batch_size
+            )
 
-            # Predict the noise at the current time step using the trained network
-            predicted_noise = self._network.predict([embedding_diffusion, array_time, labels_vector],
-                                                    verbose=0, batch_size=batch_size)
+            embedding_diffusion = self._gdf_util.p_sample(
+                predicted_noise[0],
+                embedding_diffusion,
+                array_time,
+                clip_denoised=True
+            )
 
-            # Apply the reverse diffusion step to remove noise from the embeddings
-            embedding_diffusion = self._gdf_util.p_sample(predicted_noise[0], embedding_diffusion, array_time,
-                                                          clip_denoised=True)
+        generated_data = self._decoder_model_data.predict(
+            [embedding_diffusion, labels_vector],
+            verbose=0,
+            batch_size=batch_size // 4
+        )
 
-        # Use the decoder model to transform the denoised embeddings into real data samples
-        generated_data = self._decoder_model_data.predict([embedding_diffusion, labels_vector], verbose=0, batch_size=batch_size // 4)
-
-        # Return the generated data
         return generated_data
 
+    def _generate_data_pytorch(self, labels, batch_size):
+        """PyTorch implementation of generate_data."""
+        self._network.eval()
+        self._decoder_model_data.eval()
+        
+        with self.torch.no_grad():
+            if isinstance(labels, numpy.ndarray):
+                labels = self.torch.tensor(labels, dtype=self.torch.float32, device=self._device)
+            
+            embedding_diffusion = self.torch.randn(
+                labels.shape[0],
+                self._embedding_dimension,
+                1,
+                device=self._device,
+                dtype=self.torch.float32
+            )
+
+            labels_vector = labels.unsqueeze(-1)
+
+            for time_step in reversed(range(0, self._time_steps)):
+                array_time = self.torch.full(
+                    (labels_vector.shape[0],),
+                    time_step,
+                    device=self._device,
+                    dtype=self.torch.long
+                )
+
+                predicted_noise = self._network(
+                    embedding_diffusion,
+                    array_time,
+                    labels_vector
+                )
+
+                embedding_diffusion = self._gdf_util.p_sample(
+                    predicted_noise,
+                    embedding_diffusion,
+                    array_time,
+                    clip_denoised=True
+                )
+
+            generated_data = self._decoder_model_data(embedding_diffusion, labels_vector)
+
+        self._network.train()
+        self._decoder_model_data.train()
+        
+        return generated_data.cpu().numpy()
 
     @staticmethod
     def _crop_tensor_to_original_size(tensor: numpy.ndarray, original_size: int) -> numpy.ndarray:
         """
         Crops the input tensor along the second dimension (axis=1) to match the original size.
 
-        This function is useful for reversing padding operations or restoring tensors to
-        a fixed input size before feeding them into downstream models.
-
         Args:
-            tensor (np.ndarray): A 3D NumPy array of shape (X, Y, Z), where:
-                - X is the batch size,
-                - Y is the sequence or time dimension (to be cropped),
-                - Z is the feature/channel dimension.
+            tensor (np.ndarray): A 3D NumPy array of shape (X, Y, Z).
             original_size (int): The desired size for the second dimension (Y).
-                If tensor.shape[1] <= original_size, the tensor is returned unchanged.
 
         Returns:
             np.ndarray: A cropped 3D tensor with shape (X, original_size, Z).
-
-        Example:
-            >>> tensor = np.random.rand(32, 120, 16)
-            >>> cropped = crop_tensor_to_original_size(tensor, original_size=100)
-            >>> cropped.shape
-            (32, 100, 16)
         """
-
-        # Validate input dimensions
         if tensor.ndim != 3:
             raise ValueError(f"Expected 3D tensor (X, Y, Z), got shape: {tensor.shape}")
 
         current_size = tensor.shape[1]
 
-        # No cropping needed
         if current_size <= original_size:
             return tensor
 
-        # Slice the tensor along axis 1 (sequence length) to crop the excess at the end
         return tensor[:, :original_size, :]
-
 
     def _padding_input_tensor(self, input_tensor):
         """
-        Pads the input tensor along the feature dimension to match the expected input shape
-        required by the diffusion network.
+        Pads the input tensor along the feature dimension to match the expected input shape.
 
         Args:
-            input_tensor (tensorflow.Tensor): Tensor of shape (batch_size, seq_len, channels),
-                                              or similar.
+            input_tensor: Tensor of shape (batch_size, seq_len, channels).
 
         Returns:
-            tensorflow.Tensor: A tensor padded along the feature dimension to match the model's
-                               expected input shape.
+            Padded tensor matching the model's expected input shape.
         """
-        # Ensure tensor is in float32 for consistency with model expectations
-        input_tensor = tensorflow.cast(input_tensor, tensorflow.float32)
+        if self._framework == 'tensorflow':
+            return self._padding_input_tensor_tensorflow(input_tensor)
+        else:
+            return self._padding_input_tensor_pytorch(input_tensor)
 
-        # Retrieve the dynamic shape and rank of the input tensor
-        input_shape_dynamic = tensorflow.shape(input_tensor)
-        input_rank = tensorflow.rank(input_tensor)
+    def _padding_input_tensor_tensorflow(self, input_tensor):
+        """TensorFlow implementation of _padding_input_tensor."""
+        input_tensor = self.tf.cast(input_tensor, self.tf.float32)
+        input_shape_dynamic = self.tf.shape(input_tensor)
+        input_rank = self.tf.rank(input_tensor)
 
-        # Retrieve the target length of the feature dimension (e.g., 120) from model input shape
         target_dimension = self._network.input_shape[0][-2]
-
-        # Extract static dimensions (for batch and channel)
         static_channels = input_tensor.shape[-1]
-
-        # Determine the current length of the feature dimension
         current_dimension = input_shape_dynamic[-2]
+        padding_needed = self.tf.maximum(0, target_dimension - current_dimension)
 
-        # Calculate how much padding is required (only pad if shorter than target)
-        padding_needed = tensorflow.maximum(0, target_dimension - current_dimension)
-
-        # Build padding configuration: only pad the feature dimension
-        # Format: [[pad_before_dim0, pad_after_dim0], ..., [pad_before_d, pad_after_d]]
-        tensor_paddings = tensorflow.concat([
-            tensorflow.zeros([input_rank - 2, 2], dtype=tensorflow.int32),  # No padding for batch/leading dims
-            [[0, padding_needed]],  # Padding on the feature dimension
-            tensorflow.zeros([1, 2], dtype=tensorflow.int32)  # No padding on channel dimension
+        tensor_paddings = self.tf.concat([
+            self.tf.zeros([input_rank - 2, 2], dtype=self.tf.int32),
+            [[0, padding_needed]],
+            self.tf.zeros([1, 2], dtype=self.tf.int32)
         ], axis=0)
 
-        # Apply conditional padding: if no padding is needed, return input as-is
-        padded_tensor = tensorflow.cond(
-            tensorflow.equal(padding_needed, 0),
+        padded_tensor = self.tf.cond(
+            self.tf.equal(padding_needed, 0),
             lambda: input_tensor,
-            lambda: tensorflow.pad(input_tensor, paddings=tensor_paddings, mode="CONSTANT", constant_values=0)
+            lambda: self.tf.pad(input_tensor, paddings=tensor_paddings, mode="CONSTANT", constant_values=0)
         )
 
-        # Manually enforce the static shape so downstream layers can properly infer tensor dimensions
-        padded_tensor = tensorflow.ensure_shape(padded_tensor, [None, target_dimension, static_channels])
-
+        padded_tensor = self.tf.ensure_shape(padded_tensor, [None, target_dimension, static_channels])
         return padded_tensor
 
+    def _padding_input_tensor_pytorch(self, input_tensor):
+        """PyTorch implementation of _padding_input_tensor."""
+        input_tensor = input_tensor.float()
+        
+        # Determine target dimension from network input
+        target_dimension = self._network.input_shape[-2] if hasattr(self._network, 'input_shape') else input_tensor.shape[-2]
+        current_dimension = input_tensor.shape[-2]
+        padding_needed = max(0, target_dimension - current_dimension)
+
+        if padding_needed == 0:
+            return input_tensor
+
+        # PyTorch padding format: (left, right, top, bottom, front, back)
+        # We want to pad the second-to-last dimension
+        pad = (0, 0, 0, padding_needed)  # (channels, feature_dim)
+        padded_tensor = self.nn.functional.pad(input_tensor, pad, mode='constant', value=0)
+        
+        return padded_tensor
 
     def get_samples(self, number_samples_per_class):
         """
-        Generates synthetic data samples for each class, using the specified number of samples per class.
+        Generates synthetic data samples for each class.
 
         Args:
-            number_samples_per_class (dict): A dictionary where the "classes" key maps to a dictionary of class labels
-                                             and their corresponding sample counts, and the "number_classes" key specifies
-                                             the total number of classes.
+            number_samples_per_class (dict): Dictionary specifying number of samples per class.
+                Expected structure:
+                {
+                    "classes": {class_label: number_of_samples, ...},
+                    "number_classes": total_number_of_classes
+                }
 
         Returns:
-            dict: A dictionary where keys are class labels and values are the generated samples for each class.
+            dict: Dictionary where keys are class labels and values are generated samples.
         """
+        if self._framework == 'tensorflow':
+            return self._get_samples_tensorflow(number_samples_per_class)
+        else:
+            return self._get_samples_pytorch(number_samples_per_class)
+
+    def _get_samples_tensorflow(self, number_samples_per_class):
+        """TensorFlow implementation of get_samples."""
+        from tensorflow.keras.utils import to_categorical
+        
         generated_data = {}
 
-        # Iterate over each class and generate the specified number of samples
         for label_class, number_instances in number_samples_per_class["classes"].items():
-            # Create one-hot encoded labels for the current class and number of instances
-            label_samples_generated = to_categorical([label_class] * number_instances,
-                                                     num_classes=number_samples_per_class["number_classes"])
+            label_samples_generated = to_categorical(
+                [label_class] * number_instances,
+                num_classes=number_samples_per_class["number_classes"]
+            )
 
-            # Generate synthetic data using the diffusion model (or another generation method)
-            generated_samples = self.generate_data(numpy.array(label_samples_generated, dtype=numpy.float32), batch_size=64)
+            generated_samples = self.generate_data(
+                numpy.array(label_samples_generated, dtype=numpy.float32),
+                batch_size=64
+            )
 
-            # Round the generated samples to ensure valid output format (e.g., pixel values)
             generated_samples = numpy.rint(generated_samples)
+            generated_data[label_class] = generated_samples
 
-            # Store the generated samples for the current class
+        return generated_data
+
+    def _get_samples_pytorch(self, number_samples_per_class):
+        """PyTorch implementation of get_samples."""
+        generated_data = {}
+
+        for label_class, number_instances in number_samples_per_class["classes"].items():
+            label_samples_generated = self.torch.zeros(
+                number_instances,
+                number_samples_per_class["number_classes"],
+                device=self._device
+            )
+            label_samples_generated[:, label_class] = 1
+
+            generated_samples = self.generate_data(
+                label_samples_generated,
+                batch_size=64
+            )
+
+            generated_samples = numpy.rint(generated_samples)
             generated_data[label_class] = generated_samples
 
         return generated_data
 
     def save_model(self, directory, file_name):
         """
-        Save the encoder and decoder models in both JSON and H5 formats.
+        Save all models (encoder, decoder, and both UNets).
 
         Args:
             directory (str): Directory where models will be saved.
             file_name (str): Base file name for saving models.
         """
+        if self._framework == 'tensorflow':
+            self._save_model_tensorflow(directory, file_name)
+        else:
+            self._save_model_pytorch(directory, file_name)
+
+    def _save_model_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of save_model."""
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        # Construct file names for encoder and decoder models
         encoder_file_name = os.path.join(directory, f"{file_name}_encoder")
         decoder_file_name = os.path.join(directory, f"{file_name}_decoder")
         first_unet_file_name = os.path.join(directory, f"{file_name}_first_unet")
         second_unet_file_name = os.path.join(directory, f"{file_name}_second_unet")
 
-        # Save encoder model
         self._save_model_to_json(self._encoder_model_data, f"{encoder_file_name}.json")
         self._encoder_model_data.save_weights(f"{encoder_file_name}.weights.h5")
 
-        # Save decoder model
         self._save_model_to_json(self._decoder_model_data, f"{decoder_file_name}.json")
         self._decoder_model_data.save_weights(f"{decoder_file_name}.weights.h5")
 
-        # Save encoder model
         self._save_model_to_json(self._network, f"{first_unet_file_name}.json")
         self._network.save_weights(f"{first_unet_file_name}.weights.h5")
 
-        # Save decoder model
         self._save_model_to_json(self._second_unet_model, f"{second_unet_file_name}.json")
         self._second_unet_model.save_weights(f"{second_unet_file_name}.weights.h5")
+
+    def _save_model_pytorch(self, directory, file_name):
+        """PyTorch implementation of save_model."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        encoder_file = os.path.join(directory, f"{file_name}_encoder.pt")
+        decoder_file = os.path.join(directory, f"{file_name}_decoder.pt")
+        first_unet_file = os.path.join(directory, f"{file_name}_first_unet.pt")
+        second_unet_file = os.path.join(directory, f"{file_name}_second_unet.pt")
+
+        self.torch.save(self._encoder_model_data.state_dict(), encoder_file)
+        self.torch.save(self._decoder_model_data.state_dict(), decoder_file)
+        self.torch.save(self._network.state_dict(), first_unet_file)
+        self.torch.save(self._second_unet_model.state_dict(), second_unet_file)
 
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
-        Save model architecture to a JSON file.
+        Save model architecture to a JSON file (TensorFlow only).
 
         Args:
-            model (tf.keras.Model): Model to save.
+            model: Model to save.
             file_path (str): Path to the JSON file.
         """
-
         try:
-            # Tenta salvar o modelo como JSON
             with open(file_path, "w") as json_file:
                 json.dump(model.to_json(), json_file)
             print(f"Model successfully saved to {file_path}.")
-
         except Exception as e:
-
-            # Em caso de erro, salva a mensagem de erro no arquivo
             error_message = f"Error occurred while saving model: {str(e)}"
-
             with open(file_path, "w") as error_file:
                 error_file.write(error_message)
             print(f"An error occurred and was saved to {file_path}: {error_message}")
 
     @property
-    def ema(self) -> Any:
-        """Get the Exponential Moving Average (EMA) model.
+    def framework(self) -> str:
+        """Get the framework being used."""
+        return self._framework
 
-        Returns:
-            The EMA model instance.
-        """
+    @property
+    def ema(self) -> Any:
+        """Get the Exponential Moving Average (EMA) decay rate."""
         return self._ema
 
     @ema.setter
     def ema(self, value: Any) -> None:
-        """Set the Exponential Moving Average (EMA) model.
-
-        Args:
-            value: The EMA model instance to set.
-        """
+        """Set the Exponential Moving Average (EMA) decay rate."""
+        if not isinstance(value, (int, float)) or not (0 < value < 1):
+            raise ValueError("EMA must be a float between 0 and 1")
         self._ema = value
 
     @property
     def margin(self) -> float:
-        """Get the margin value used in contrastive loss.
-
-        Returns:
-            The margin value.
-        """
+        """Get the margin value used in contrastive loss."""
         return self._margin
 
     @margin.setter
     def margin(self, value: float) -> None:
-        """Set the margin value for contrastive loss.
-
-        Args:
-            value: The margin value to set (must be positive).
-        """
+        """Set the margin value for contrastive loss."""
         if value <= 0:
             raise ValueError("Margin must be positive")
         self._margin = value
 
     @property
     def gdf_util(self) -> Any:
-        """Get the Gradient Descent Filter utility.
-
-        Returns:
-            The GDF utility instance.
-        """
+        """Get the Gaussian Diffusion utility."""
         return self._gdf_util
 
     @gdf_util.setter
     def gdf_util(self, value: Any) -> None:
-        """Set the Gradient Descent Filter utility.
-
-        Args:
-            value: The GDF utility instance to set.
-        """
+        """Set the Gaussian Diffusion utility."""
         self._gdf_util = value
 
     @property
     def time_steps(self) -> int:
-        """Get the number of diffusion time steps.
-
-        Returns:
-            The number of time steps.
-        """
+        """Get the number of diffusion time steps."""
         return self._time_steps
 
     @time_steps.setter
     def time_steps(self, value: int) -> None:
-        """Set the number of diffusion time steps.
-
-        Args:
-            value: The number of time steps (must be positive).
-        """
+        """Set the number of diffusion time steps."""
         if value <= 0:
             raise ValueError("Time steps must be positive")
         self._time_steps = value
 
     @property
     def train_stage(self) -> str:
-        """Get the current training stage.
-
-        Returns:
-            The current training stage identifier.
-        """
+        """Get the current training stage."""
         return self._train_stage
 
     @train_stage.setter
     def train_stage(self, value: str) -> None:
-        """Set the current training stage.
-
-        Args:
-            value: The training stage identifier to set.
-        """
+        """Set the current training stage."""
         self._train_stage = value
 
     @property
     def network(self) -> Any:
-        """Get the primary U-Net model.
-
-        Returns:
-            The first U-Net model instance.
-        """
+        """Get the primary U-Net model."""
         return self._network
 
     @network.setter
     def network(self, value: Any) -> None:
-        """Set the primary U-Net model.
-
-        Args:
-            value: The U-Net model instance to set.
-        """
+        """Set the primary U-Net model."""
         self._network = value
+        if self._framework == 'pytorch':
+            self._network.to(self._device)
 
     @property
     def second_unet_model(self) -> Any:
-        """Get the secondary U-Net model.
-
-        Returns:
-            The second U-Net model instance.
-        """
+        """Get the secondary U-Net model."""
         return self._second_unet_model
 
     @second_unet_model.setter
     def second_unet_model(self, value: Any) -> None:
-        """Set the secondary U-Net model.
-
-        Args:
-            value: The second U-Net model instance to set.
-        """
+        """Set the secondary U-Net model."""
         self._second_unet_model = value
+        if self._framework == 'pytorch':
+            self._second_unet_model.to(self._device)
 
     @property
     def embedding_dimension(self) -> int:
-        """Get the embedding dimension size.
-
-        Returns:
-            The dimension of the embedding space.
-        """
+        """Get the embedding dimension size."""
         return self._embedding_dimension
 
     @embedding_dimension.setter
     def embedding_dimension(self, value: int) -> None:
-        """Set the embedding dimension size.
-
-        Args:
-            value: The dimension size (must be positive).
-        """
+        """Set the embedding dimension size."""
         if value <= 0:
             raise ValueError("Embedding dimension must be positive")
         self._embedding_dimension = value
 
     @property
     def encoder_model_data(self) -> Any:
-        """Get the image encoder model.
-
-        Returns:
-            The encoder model instance.
-        """
+        """Get the encoder model."""
         return self._encoder_model_data
 
     @encoder_model_data.setter
     def encoder_model_data(self, value: Any) -> None:
-        """Set the image encoder model.
-
-        Args:
-            value: The encoder model instance to set.
-        """
+        """Set the encoder model."""
         self._encoder_model_data = value
+        if self._framework == 'pytorch':
+            self._encoder_model_data.to(self._device)
 
     @property
     def decoder_model_data(self) -> Any:
-        """Get the image decoder model.
-
-        Returns:
-            The decoder model instance.
-        """
+        """Get the decoder model."""
         return self._decoder_model_data
 
     @decoder_model_data.setter
     def decoder_model_data(self, value: Any) -> None:
-        """Set the image decoder model.
-
-        Args:
-            value: The decoder model instance to set.
-        """
+        """Set the decoder model."""
         self._decoder_model_data = value
-
-    @property
-    def optimizer_diffusion(self) -> Any:
-        """Get the diffusion model optimizer.
-
-        Returns:
-            The optimizer instance for the diffusion model.
-        """
-        return self._optimizer_diffusion
-
-    @optimizer_diffusion.setter
-    def optimizer_diffusion(self, value: Any) -> None:
-        """Set the diffusion model optimizer.
-
-        Args:
-            value: The optimizer instance to set.
-        """
-        self._optimizer_diffusion = value
-
-    @property
-    def optimizer_autoencoder(self) -> Any:
-        """Get the autoencoder optimizer.
-
-        Returns:
-            The optimizer instance for the autoencoder.
-        """
-        return self._optimizer_autoencoder
-
-    @optimizer_autoencoder.setter
-    def optimizer_autoencoder(self, value: Any) -> None:
-        """Set the autoencoder optimizer.
-
-        Args:
-            value: The optimizer instance to set.
-        """
-        self._optimizer_autoencoder = value
-
-
-
