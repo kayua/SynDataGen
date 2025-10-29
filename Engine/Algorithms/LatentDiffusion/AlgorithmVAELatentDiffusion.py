@@ -34,29 +34,18 @@ __credits__ = ['Kayuã Oleques']
 try:
     import os
     import sys
-
     import json
     import numpy
-
-    import tensorflow
-    from abc import ABC
-
-    from tensorflow.keras import Model
-
-    from tensorflow.keras.metrics import Mean
-
-    from tensorflow.keras.utils import to_categorical
-
-    from tensorflow.keras.losses import BinaryCrossentropy
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
 
 
-class VAELatentDiffusionAlgorithm(Model):
+class VAELatentDiffusionAlgorithm:
     """
-    Implements a Variational AutoEncoder (VAE) model for generating synthetic data.
+    A framework-agnostic Variational AutoEncoder (VAE) model for generating synthetic data.
+    Supports both TensorFlow and PyTorch.
 
     The model includes an encoder and a decoder for encoding input data and reconstructing
     it from a learned latent space. During training, it computes both the reconstruction loss
@@ -66,17 +55,19 @@ class VAELatentDiffusionAlgorithm(Model):
     adaptable for different generative tasks.
 
     Attributes:
+        @framework (str):
+            Framework to use: 'tensorflow' or 'pytorch'.
         @_encoder (Model):
             Encoder model that encodes input data into the latent space.
         @_decoder (Model):
             Decoder model that reconstructs data from the latent representation.
         @_loss_function (callable):
             Function used to compute the total loss during training.
-        @_total_loss_tracker (Mean):
+        @_total_loss_tracker:
             Tracks the overall loss during training.
-        @_reconstruction_loss_tracker (Mean):
+        @_reconstruction_loss_tracker:
             Tracks the reconstruction loss during training.
-        @_kl_loss_tracker (Mean):
+        @_kl_loss_tracker:
             Tracks the KL divergence loss during training.
         @_latent_mean_distribution (float):
             Mean of the latent distribution.
@@ -93,29 +84,40 @@ class VAELatentDiffusionAlgorithm(Model):
         @_models_saved_path (str):
             Directory path where the encoder and decoder models are saved.
 
-    Raises:
-        ValueError:
-            Raised in cases where:
-            - The latent dimension is non-positive.
-            - The standard deviation of the latent space is non-positive.
-            - The file paths are invalid.
-
     Example:
+        >>> # TensorFlow example
         >>> vae_model = VAELatentDiffusionAlgorithm(
+        ...     framework='tensorflow',
         ...     encoder_model=encoder,
         ...     decoder_model=decoder,
         ...     loss_function=custom_loss_function,
         ...     latent_dimension=128,
+        ...     decoder_latent_dimension=128,
         ...     latent_mean_distribution=0.0,
         ...     latent_stander_deviation=1.0,
         ...     file_name_encoder="encoder_model.h5",
         ...     file_name_decoder="decoder_model.h5",
         ...     models_saved_path="models/"
         ... )
-        >>> vae_model.train_step(data)
+        
+        >>> # PyTorch example
+        >>> vae_model = VAELatentDiffusionAlgorithm(
+        ...     framework='pytorch',
+        ...     encoder_model=encoder,
+        ...     decoder_model=decoder,
+        ...     loss_function=custom_loss_function,
+        ...     latent_dimension=128,
+        ...     decoder_latent_dimension=128,
+        ...     latent_mean_distribution=0.0,
+        ...     latent_stander_deviation=1.0,
+        ...     file_name_encoder="encoder_model.pt",
+        ...     file_name_decoder="decoder_model.pt",
+        ...     models_saved_path="models/"
+        ... )
     """
 
     def __init__(self,
+                 framework,
                  encoder_model,
                  decoder_model,
                  loss_function,
@@ -125,18 +127,14 @@ class VAELatentDiffusionAlgorithm(Model):
                  latent_stander_deviation,
                  file_name_encoder,
                  file_name_decoder,
-                 models_saved_path,
-                 *args,
-                 **kwargs):
-
-        super().__init__(*args, **kwargs)
+                 models_saved_path):
         """
-        Initializes the VariationalAlgorithm model with provided encoder and decoder models, 
+        Initializes the VAELatentDiffusionAlgorithm model with provided encoder and decoder models, 
         loss function, and latent space parameters.
 
-        This constructor sets up the architecture, metrics, and paths for saving the models.
-
         Args:
+            @framework (str):
+                Framework to use: 'tensorflow' or 'pytorch'.
             @encoder_model (Model):
                 The encoder model responsible for encoding input data into latent variables.
             @decoder_model (Model):
@@ -145,6 +143,8 @@ class VAELatentDiffusionAlgorithm(Model):
                 The loss function used to compute the training loss.
             @latent_dimension (int):
                 The dimensionality of the latent space.
+            @decoder_latent_dimension (int):
+                The dimensionality of the latent space used by the decoder.
             @latent_mean_distribution (float):
                 The mean of the latent distribution (usually 0).
             @latent_stander_deviation (float):
@@ -155,112 +155,244 @@ class VAELatentDiffusionAlgorithm(Model):
                 The filename for saving the decoder model.
             @models_saved_path (str):
                 The directory where the models will be saved.
-            @*args:
-                Additional arguments for the parent class.
-            @**kwargs:
-                Additional keyword arguments for the parent class.
 
         Raises:
             ValueError:
+                If framework is not 'tensorflow' or 'pytorch'.
                 If latent_dimension <= 0.
                 If latent_stander_deviation <= 0.
                 If file paths are invalid.
         """
-        # Initialize the encoder and decoder models
+        
+        if framework not in ['tensorflow', 'pytorch']:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
+
+        if not isinstance(latent_dimension, int) or latent_dimension <= 0:
+            raise ValueError("latent_dimension must be a positive integer.")
+
+        if not isinstance(decoder_latent_dimension, int) or decoder_latent_dimension <= 0:
+            raise ValueError("decoder_latent_dimension must be a positive integer.")
+
+        if not isinstance(latent_stander_deviation, (int, float)) or latent_stander_deviation <= 0:
+            raise ValueError("latent_stander_deviation must be a positive number.")
+
+        if not isinstance(file_name_encoder, str) or not file_name_encoder:
+            raise ValueError("file_name_encoder must be a non-empty string.")
+
+        if not isinstance(file_name_decoder, str) or not file_name_decoder:
+            raise ValueError("file_name_decoder must be a non-empty string.")
+
+        if not isinstance(models_saved_path, str) or not models_saved_path:
+            raise ValueError("models_saved_path must be a non-empty string.")
+
+        self._framework = framework
         self._encoder = encoder_model
         self._decoder = decoder_model
-
-        # Loss function and metrics for tracking losses
         self._loss_function = loss_function
-        self._total_loss_tracker = Mean(name="loss")
-        self._reconstruction_loss_tracker = Mean(name="reconstruction_loss")
-        self._kl_loss_tracker = Mean(name="kl_loss")
         self._latent_mean_distribution = latent_mean_distribution
         self._latent_stander_deviation = latent_stander_deviation
         self._latent_dimension = latent_dimension
         self._decoder_latent_dimension = decoder_latent_dimension
-        # File names for saving models
         self._file_name_encoder = file_name_encoder
         self._file_name_decoder = file_name_decoder
-
-        # Path for saving models
         self._models_saved_path = models_saved_path
+        self.optimizer = None
 
-    @tensorflow.function
+        # Framework-specific initialization
+        if self._framework == 'tensorflow':
+            import tensorflow as tf
+            from tensorflow.keras.metrics import Mean
+            
+            self.tf = tf
+            self._total_loss_tracker = Mean(name="loss")
+            self._reconstruction_loss_tracker = Mean(name="reconstruction_loss")
+            self._kl_loss_tracker = Mean(name="kl_loss")
+            
+        else:  # pytorch
+            import torch
+            import torch.nn as nn
+            
+            self.torch = torch
+            self.nn = nn
+            self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self._encoder.to(self._device)
+            self._decoder.to(self._device)
+            
+            # PyTorch metrics tracking
+            self._total_loss = 0.0
+            self._reconstruction_loss = 0.0
+            self._kl_loss = 0.0
+            self._num_batches = 0
+
+    def compile(self, optimizer, *args, **kwargs):
+        """
+        Compiles the VAE model with an optimizer.
+
+        Args:
+            optimizer: Optimizer for training.
+            *args, **kwargs: Additional arguments.
+        """
+        self.optimizer = optimizer
+
     def train_step(self, batch):
         """
         Perform a training step for the Variational AutoEncoder (VAE).
 
         Args:
-            batch: Input data batch.
+            batch: Input data batch (batch_x, batch_y).
 
         Returns:
             dict: Dictionary containing the loss values (total loss, reconstruction loss, KL divergence loss).
         """
-        # Use tf.function decorator for improved TensorFlow performance
+        if self._framework == 'tensorflow':
+            return self._train_step_tensorflow(batch)
+        else:
+            return self._train_step_pytorch(batch)
+
+    def _train_step_tensorflow(self, batch):
+        """TensorFlow implementation of train_step."""
         batch_x, batch_y = batch
 
-        with tensorflow.GradientTape() as tape:
-            # Forward pass: Encode input data and sample from the latent space
+        with self.tf.GradientTape() as tape:
+            # Forward pass
             latent_mean, latent_log_variation, latent, label = self._encoder(batch_x)
-
-            # Decode the sampled latent space and generate reconstructed data
             reconstruction_data = self._decoder([latent, label])
 
-            # Calculate binary cross-entropy loss for reconstruction
-            binary_cross_entropy_loss = tensorflow.keras.losses.binary_crossentropy(batch_y, reconstruction_data)
-            sum_reduced = binary_cross_entropy_loss
-            reconstruction_loss = tensorflow.reduce_mean(sum_reduced)
+            # Reconstruction loss
+            binary_cross_entropy_loss = self.tf.keras.losses.binary_crossentropy(batch_y, reconstruction_data)
+            reconstruction_loss = self.tf.reduce_mean(binary_cross_entropy_loss)
 
-            # Calculate KL divergence loss
-            encoder_output = (1 + latent_log_variation - tensorflow.square(latent_mean))
-            kl_divergence_loss = -0.5 * (encoder_output - tensorflow.exp(latent_log_variation))
-            kl_divergence_loss = tensorflow.reduce_mean(tensorflow.reduce_sum(kl_divergence_loss, axis=1))
+            # KL divergence loss
+            encoder_output = (1 + latent_log_variation - self.tf.square(latent_mean))
+            kl_divergence_loss = -0.5 * (encoder_output - self.tf.exp(latent_log_variation))
+            kl_divergence_loss = self.tf.reduce_mean(self.tf.reduce_sum(kl_divergence_loss, axis=1))
 
-            # Total loss is the sum of reconstruction loss and KL divergence loss
+            # Total loss
             loss_model_in_reconstruction = reconstruction_loss + kl_divergence_loss
 
-        # Compute gradients and update model weights
-        gradient_update = tape.gradient(loss_model_in_reconstruction, self.trainable_weights)
-
-        # Update loss metrics
-        self.optimizer.apply_gradients(zip(gradient_update, self.trainable_weights))
+        # Compute gradients and update
+        gradient_update = tape.gradient(loss_model_in_reconstruction, 
+                                       list(self._encoder.trainable_variables) + 
+                                       list(self._decoder.trainable_variables))
+        
+        trainable_vars = list(self._encoder.trainable_variables) + list(self._decoder.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradient_update, trainable_vars))
+        
+        # Update metrics
         self._total_loss_tracker.update_state(loss_model_in_reconstruction)
         self._reconstruction_loss_tracker.update_state(reconstruction_loss)
         self._kl_loss_tracker.update_state(kl_divergence_loss)
 
-        # Return a dictionary containing the current loss values
-        return {"loss": self._total_loss_tracker.result(),
-                "reconstruction_loss": self._reconstruction_loss_tracker.result(),
-                "kl_loss": self._kl_loss_tracker.result()}
-    def get_decoder_trained(self):
+        return {
+            "loss": self._total_loss_tracker.result(),
+            "reconstruction_loss": self._reconstruction_loss_tracker.result(),
+            "kl_loss": self._kl_loss_tracker.result()
+        }
 
+    def _train_step_pytorch(self, batch):
+        """PyTorch implementation of train_step."""
+        batch_x, batch_y = batch
+        batch_x = batch_x.to(self._device)
+        batch_y = batch_y.to(self._device)
+
+        self.optimizer.zero_grad()
+
+        # Forward pass
+        latent_mean, latent_log_variation, latent, label = self._encoder(batch_x)
+        reconstruction_data = self._decoder(latent, label)
+
+        # Reconstruction loss (binary cross entropy)
+        reconstruction_loss = self.nn.functional.binary_cross_entropy(
+            reconstruction_data, batch_y, reduction='mean'
+        )
+
+        # KL divergence loss
+        kl_divergence_loss = -0.5 * self.torch.sum(
+            1 + latent_log_variation - latent_mean.pow(2) - latent_log_variation.exp(),
+            dim=1
+        )
+        kl_divergence_loss = self.torch.mean(kl_divergence_loss)
+
+        # Total loss
+        total_loss = reconstruction_loss + kl_divergence_loss
+
+        # Backward pass
+        total_loss.backward()
+        self.optimizer.step()
+
+        # Update metrics
+        self._total_loss += total_loss.item()
+        self._reconstruction_loss += reconstruction_loss.item()
+        self._kl_loss += kl_divergence_loss.item()
+        self._num_batches += 1
+
+        return {
+            "loss": self._total_loss / self._num_batches,
+            "reconstruction_loss": self._reconstruction_loss / self._num_batches,
+            "kl_loss": self._kl_loss / self._num_batches
+        }
+
+    def fit(self, train_dataset, epochs=1, verbose=1):
+        """
+        Trains the VAE model.
+
+        Args:
+            train_dataset: Training dataset.
+            epochs (int): Number of epochs.
+            verbose (int): Verbosity mode.
+        """
+        for epoch in range(epochs):
+            if self._framework == 'pytorch':
+                self._total_loss = 0.0
+                self._reconstruction_loss = 0.0
+                self._kl_loss = 0.0
+                self._num_batches = 0
+            
+            epoch_losses = []
+            
+            for batch in train_dataset:
+                loss_dict = self.train_step(batch)
+                epoch_losses.append(loss_dict)
+            
+            if verbose:
+                avg_loss = numpy.mean([l['loss'] for l in epoch_losses])
+                avg_recon = numpy.mean([l['reconstruction_loss'] for l in epoch_losses])
+                avg_kl = numpy.mean([l['kl_loss'] for l in epoch_losses])
+                print(f"Epoch {epoch+1}/{epochs} - loss: {avg_loss:.4f} - "
+                      f"reconstruction_loss: {avg_recon:.4f} - kl_loss: {avg_kl:.4f}")
+
+    def get_decoder_trained(self):
+        """Returns the trained decoder model."""
         return self._decoder
 
     def get_encoder_trained(self):
-
+        """Returns the trained encoder model."""
         return self._encoder
-
 
     def create_embedding(self, data):
         """
         Generates latent space embeddings using the trained encoder.
 
         Args:
-            data (ndarray): Input data to encode.
+            data: Input data to encode.
 
         Returns:
             ndarray: Latent space representations.
         """
-        return self._encoder.predict(data, batch_size=32)[0]
-
+        if self._framework == 'tensorflow':
+            return self._encoder.predict(data, batch_size=32)[0]
+        else:
+            self._encoder.eval()
+            with self.torch.no_grad():
+                if isinstance(data, numpy.ndarray):
+                    data = self.torch.tensor(data, dtype=self.torch.float32, device=self._device)
+                latent_mean, _, _, _ = self._encoder(data)
+            self._encoder.train()
+            return latent_mean.cpu().numpy()
 
     def get_samples(self, number_samples_per_class):
         """
         Generate synthetic samples for each specified class using the trained decoder.
-
-        This function generates samples by sampling from a normal distribution in the latent space
-        and conditioning the generation process on class labels.
 
         Args:
             number_samples_per_class (dict):
@@ -274,39 +406,62 @@ class VAELatentDiffusionAlgorithm(Model):
         Returns:
             dict:
                 A dictionary where each key is a class label and the value is an array of generated samples.
-                Each array contains the synthetic samples generated for the corresponding class.
         """
+        if self._framework == 'tensorflow':
+            return self._get_samples_tensorflow(number_samples_per_class)
+        else:
+            return self._get_samples_pytorch(number_samples_per_class)
 
-        # Initialize a dictionary to store the generated samples for each class
+    def _get_samples_tensorflow(self, number_samples_per_class):
+        """TensorFlow implementation of get_samples."""
+        from tensorflow.keras.utils import to_categorical
+        
         generated_data = {}
 
-        # Iterate over each class and the corresponding number of samples to generate
         for label_class, number_instances in number_samples_per_class["classes"].items():
-            # Create a one-hot encoded label array for all samples in the current class
-            # Example: if label_class = 1 and number_instances = 3, this generates:
-            # [[0, 1], [0, 1], [0, 1]]
-            label_samples_generated = to_categorical([label_class] * number_instances,
-                                                     num_classes=number_samples_per_class["number_classes"])
+            label_samples_generated = to_categorical(
+                [label_class] * number_instances,
+                num_classes=number_samples_per_class["number_classes"]
+            )
 
-            # Sample random latent vectors from a standard normal distribution
-            # Shape: (number_instances, decoder_latent_dimension)
-            latent_noise = numpy.random.normal(size=(number_instances, self._decoder_latent_dimension))
+            latent_noise = numpy.random.normal(
+                self._latent_mean_distribution,
+                self._latent_stander_deviation,
+                size=(number_instances, self._decoder_latent_dimension)
+            )
 
-            # Use the decoder to generate samples conditioned on the latent vectors and class labels
-            # Inputs: (latent vectors, class labels)
-            # 'verbose=0' suppresses any print output from the prediction process
             generated_samples = self._decoder.predict([latent_noise, label_samples_generated], verbose=0)
-
-            # Round the generated samples to the nearest integer
-            # This is useful for discrete data, like binary features (0/1) or integer values
             generated_samples = numpy.rint(generated_samples)
-
-            # Store the generated samples in the dictionary under the corresponding class label
             generated_data[label_class] = generated_samples
 
-        # Return the dictionary with all generated samples, organized by class
         return generated_data
 
+    def _get_samples_pytorch(self, number_samples_per_class):
+        """PyTorch implementation of get_samples."""
+        generated_data = {}
+        self._decoder.eval()
+
+        with self.torch.no_grad():
+            for label_class, number_instances in number_samples_per_class["classes"].items():
+                label_samples_generated = self.torch.zeros(
+                    number_instances,
+                    number_samples_per_class["number_classes"],
+                    device=self._device
+                )
+                label_samples_generated[:, label_class] = 1
+
+                latent_noise = self.torch.randn(
+                    number_instances,
+                    self._decoder_latent_dimension,
+                    device=self._device
+                ) * self._latent_stander_deviation + self._latent_mean_distribution
+
+                generated_samples = self._decoder(latent_noise, label_samples_generated)
+                generated_samples = self.torch.round(generated_samples)
+                generated_data[label_class] = generated_samples.cpu().numpy()
+
+        self._decoder.train()
+        return generated_data
 
     def generate_synthetic_data(self, number_samples_generate, labels, latent_dimension):
         """
@@ -318,67 +473,116 @@ class VAELatentDiffusionAlgorithm(Model):
             latent_dimension (int): Dimension of the latent space.
 
         Returns:
-            tf.Tensor: Synthetic data generated by the decoder.
+            ndarray: Synthetic data generated by the decoder.
         """
+        if self._framework == 'tensorflow':
+            return self._generate_synthetic_data_tensorflow(number_samples_generate, labels, latent_dimension)
+        else:
+            return self._generate_synthetic_data_pytorch(number_samples_generate, labels, latent_dimension)
 
-        # Generate random noise samples in the latent space
-        random_noise_generate = tensorflow.random.normal(shape=(number_samples_generate, latent_dimension),
-                                                 mean=self.latent_mean_distribution, stddev=self.latent_deviation,
-                                                 dtype=tensorflow.float32)
+    def _generate_synthetic_data_tensorflow(self, number_samples_generate, labels, latent_dimension):
+        """TensorFlow implementation of generate_synthetic_data."""
+        random_noise_generate = self.tf.random.normal(
+            shape=(number_samples_generate, latent_dimension),
+            mean=self._latent_mean_distribution,
+            stddev=self._latent_stander_deviation,
+            dtype=self.tf.float32
+        )
 
-        # Create label vectors for the generated data
-        label_list = tensorflow.cast(tensorflow.fill((number_samples_generate, 1), labels), dtype=tensorflow.float32)
+        label_list = self.tf.cast(
+            self.tf.fill((number_samples_generate, 1), labels),
+            dtype=self.tf.float32
+        )
 
-        # Generate synthetic data by passing random noise and labels through the decoder
-        synthetic_data = self._decoder.predict(numpy.array([random_noise_generate, label_list]))
-
-        # Return the generated synthetic data as a TensorFlow tensor
+        synthetic_data = self._decoder.predict([random_noise_generate.numpy(), label_list.numpy()])
         return synthetic_data
+
+    def _generate_synthetic_data_pytorch(self, number_samples_generate, labels, latent_dimension):
+        """PyTorch implementation of generate_synthetic_data."""
+        self._decoder.eval()
+        
+        with self.torch.no_grad():
+            random_noise_generate = self.torch.randn(
+                number_samples_generate,
+                latent_dimension,
+                device=self._device
+            ) * self._latent_stander_deviation + self._latent_mean_distribution
+
+            label_list = self.torch.full(
+                (number_samples_generate, 1),
+                labels,
+                dtype=self.torch.float32,
+                device=self._device
+            )
+
+            synthetic_data = self._decoder(random_noise_generate, label_list)
+        
+        self._decoder.train()
+        return synthetic_data.cpu().numpy()
 
     @property
     def metrics(self):
-        """
-        Returns:
-            list: List of metrics to track during training.
-        """
-        return [self._total_loss_tracker, self._reconstruction_loss_tracker, self._kl_loss_tracker]
+        """Returns list of metrics to track during training."""
+        if self._framework == 'tensorflow':
+            return [self._total_loss_tracker, self._reconstruction_loss_tracker, self._kl_loss_tracker]
+        else:
+            return ["loss", "reconstruction_loss", "kl_loss"]
 
     def save_model(self, directory, file_name):
         """
-        Save the encoder and decoder models in both JSON and H5 formats.
+        Save the encoder and decoder models.
 
         Args:
             directory (str): Directory where models will be saved.
             file_name (str): Base file name for saving models.
         """
+        if self._framework == 'tensorflow':
+            self._save_model_tensorflow(directory, file_name)
+        else:
+            self._save_model_pytorch(directory, file_name)
+
+    def _save_model_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of save_model."""
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        # Construct file names for encoder and decoder models
         encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder")
         decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder")
 
-        # Save encoder model
         self._save_model_to_json(self._encoder, f"{encoder_file_name}.json")
         self._encoder.save_weights(f"{encoder_file_name}.weights.h5")
 
-        # Save decoder model
         self._save_model_to_json(self._decoder, f"{decoder_file_name}.json")
         self._decoder.save_weights(f"{decoder_file_name}.weights.h5")
 
+    def _save_model_pytorch(self, directory, file_name):
+        """PyTorch implementation of save_model."""
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
+        decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder.pt")
+
+        self.torch.save({
+            'model_state_dict': self._encoder.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict() if self.optimizer else None
+        }, encoder_file_name)
+
+        self.torch.save({
+            'model_state_dict': self._decoder.state_dict()
+        }, decoder_file_name)
 
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
-        Save model architecture to a JSON file.
+        Save model architecture to a JSON file (TensorFlow only).
 
         Args:
-            model (tf.keras.Model): Model to save.
+            model: Model to save.
             file_path (str): Path to the JSON file.
         """
         with open(file_path, "w") as json_file:
             json.dump(model.to_json(), json_file)
-
 
     def load_models(self, directory, file_name):
         """
@@ -388,27 +592,74 @@ class VAELatentDiffusionAlgorithm(Model):
             directory (str): Directory where models are stored.
             file_name (str): Base file name for loading models.
         """
+        if self._framework == 'tensorflow':
+            self._load_models_tensorflow(directory, file_name)
+        else:
+            self._load_models_pytorch(directory, file_name)
 
-        # Construct file names for encoder and decoder models
-        encoder_file_name = "{}_encoder".format(file_name)
-        decoder_file_name = "{}_decoder".format(file_name)
+    def _load_models_tensorflow(self, directory, file_name):
+        """TensorFlow implementation of load_models."""
+        from tensorflow.keras.models import model_from_json
+        
+        encoder_file_name = f"{file_name}_encoder"
+        decoder_file_name = f"{file_name}_decoder"
 
-        # Load the encoder and decoder models from the specified directory
-        self._encoder = self._save_neural_network_model(encoder_file_name, directory)
-        self._decoder = self._save_neural_network_model(decoder_file_name, directory)
+        encoder_path = os.path.join(directory, f"fold_{encoder_file_name}")
+        decoder_path = os.path.join(directory, f"fold_{decoder_file_name}")
+
+        with open(f"{encoder_path}.json", 'r') as json_file:
+            encoder_json = json.load(json_file)
+            self._encoder = model_from_json(encoder_json)
+            self._encoder.load_weights(f"{encoder_path}.weights.h5")
+
+        with open(f"{decoder_path}.json", 'r') as json_file:
+            decoder_json = json.load(json_file)
+            self._decoder = model_from_json(decoder_json)
+            self._decoder.load_weights(f"{decoder_path}.weights.h5")
+
+    def _load_models_pytorch(self, directory, file_name):
+        """PyTorch implementation of load_models."""
+        encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
+        decoder_file_name = os.path.join(directory, f"fold_{file_name}_decoder.pt")
+
+        encoder_checkpoint = self.torch.load(encoder_file_name, map_location=self._device)
+        self._encoder.load_state_dict(encoder_checkpoint['model_state_dict'])
+        if self.optimizer and encoder_checkpoint.get('optimizer_state_dict'):
+            self.optimizer.load_state_dict(encoder_checkpoint['optimizer_state_dict'])
+
+        decoder_checkpoint = self.torch.load(decoder_file_name, map_location=self._device)
+        self._decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+
+    @property
+    def framework(self):
+        """Get the framework being used."""
+        return self._framework
 
     @property
     def decoder(self):
+        """Get the decoder model."""
         return self._decoder
 
     @property
     def encoder(self):
+        """Get the encoder model."""
         return self._encoder
 
     @decoder.setter
     def decoder(self, decoder):
+        """Set the decoder model."""
         self._decoder = decoder
+        if self._framework == 'pytorch':
+            self._decoder.to(self._device)
 
     @encoder.setter
     def encoder(self, encoder):
+        """Set the encoder model."""
         self._encoder = encoder
+        if self._framework == 'pytorch':
+            self._encoder.to(self._device)
+
+    @property
+    def device(self):
+        """Get the device being used (PyTorch only)."""
+        return self._device if self._framework == 'pytorch' else None
