@@ -5,7 +5,7 @@ __author__ = 'Synthetic Ocean AI - Team'
 __email__ = 'syntheticoceanai@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
-__last_update__ = '2025/03/29'
+__last_update__ = '2025/10/29'
 __credits__ = ['Synthetic Ocean AI']
 
 # MIT License
@@ -30,21 +30,34 @@ __credits__ = ['Synthetic Ocean AI']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+
+# Detect available framework
+FRAMEWORK = None
 try:
+    import tensorflow as tf
+    from tensorflow.keras.layers import Layer as TFLayer
+    FRAMEWORK = 'tensorflow'
+except ImportError:
+    pass
 
-    import sys
-    import tensorflow
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    if FRAMEWORK is None:
+        FRAMEWORK = 'pytorch'
+except ImportError:
+    pass
 
-    from tensorflow.keras.layers import Layer
-
-except ImportError as error:
-    print(error)
+if FRAMEWORK is None:
+    print("Error: Neither TensorFlow nor PyTorch is installed.")
     sys.exit(-1)
 
 
-class LeakyReLU(Layer):
+class LeakyReLU:
     """
-    Leaky Rectified Linear Unit (LeakyReLU) Activation Function Layer.
+    Leaky Rectified Linear Unit (LeakyReLU) Activation Function Layer (Framework Agnostic).
 
     The Leaky ReLU activation function is defined as:
 
@@ -61,27 +74,55 @@ class LeakyReLU(Layer):
 
     Methods
     -------
-        call(neural_network_flow: tensorflow.Tensor) -> tensorflow.Tensor
+        forward(neural_network_flow) / call(neural_network_flow)
             Applies the Leaky ReLU activation function to the input tensor and returns the output tensor.
 
-    Example
+    Example (TensorFlow)
     -------
-    >>> import tensorflow
+    >>> import tensorflow as tf
     ...    # Example tensor with shape (batch_size, sequence_length, 8)
-    ...    input_tensor = tensorflow.random.uniform((2, 5, 8))
+    ...    input_tensor = tf.random.uniform((2, 5, 8))
     ...    # Instantiate and apply LeakyReLU
-    ...    leaky_relu_layer = LeakyReLU()
+    ...    leaky_relu_layer = LeakyReLU(negative_slope=0.2)
     ...    output_tensor = leaky_relu_layer(input_tensor)
     ...    # Output shape (batch_size, sequence_length, 8)
-    ...    print(output_tensor.shape)
-    >>>
+    ...    print(output_tensor.shape)  # (2, 5, 8)
 
-
+    Example (PyTorch)
+    -------
+    >>> import torch
+    ...    # Example tensor with shape (batch_size, sequence_length, 8)
+    ...    input_tensor = torch.randn(2, 5, 8)
+    ...    # Instantiate and apply LeakyReLU
+    ...    leaky_relu_layer = LeakyReLU(negative_slope=0.2)
+    ...    output_tensor = leaky_relu_layer(input_tensor)
+    ...    # Output shape (batch_size, sequence_length, 8)
+    ...    print(output_tensor.shape)  # torch.Size([2, 5, 8])
     """
+
+    def __new__(cls, negative_slope=0.2, **kwargs):
+        """
+        Factory method to instantiate the appropriate framework-specific implementation.
+        
+        Args:
+            negative_slope (float): Slope for negative values (default is 0.2).
+            **kwargs: Additional keyword arguments.
+            
+        Returns:
+            LeakyReLUTF or LeakyReLUPyTorch instance.
+        """
+        if FRAMEWORK == 'tensorflow':
+            return LeakyReLUTF(negative_slope=negative_slope, **kwargs)
+        elif FRAMEWORK == 'pytorch':
+            return LeakyReLUPyTorch(negative_slope=negative_slope, **kwargs)
+
+
+class LeakyReLUTF(TFLayer):
+    """TensorFlow implementation of LeakyReLU."""
 
     def __init__(self, negative_slope=0.2, **kwargs):
         """
-        Initializes the Leaky ReLU activation function layer.
+        Initializes the Leaky ReLU activation function layer for TensorFlow.
 
         Parameters
         ----------
@@ -90,25 +131,24 @@ class LeakyReLU(Layer):
         **kwargs
             Additional keyword arguments passed to the base Layer class.
         """
-        super(LeakyReLU, self).__init__(**kwargs)
+        super(LeakyReLUTF, self).__init__(**kwargs)
         self.negative_slope = negative_slope
 
-    def call(self, neural_network_flow: tensorflow.Tensor) -> tensorflow.Tensor:
+    def call(self, neural_network_flow):
         """
         Applies the Leaky ReLU activation function to the input tensor.
 
         Parameters
         ----------
-            neural_network_flow : tensorflow.Tensor
-                Input tensor with any shape.
+        neural_network_flow : tf.Tensor
+            Input tensor with any shape.
 
         Returns
         -------
-        tensorflow.Tensor
+        tf.Tensor
             Output tensor with the same shape as input, after applying Leaky ReLU transformation.
         """
-        return tensorflow.maximum(self.negative_slope * neural_network_flow,
-                                 neural_network_flow)
+        return tf.maximum(self.negative_slope * neural_network_flow, neural_network_flow)
 
     def compute_output_shape(self, input_shape):
         """
@@ -116,8 +156,8 @@ class LeakyReLU(Layer):
 
         Parameters
         ----------
-            input_shape : tuple
-                Shape of the input tensor.
+        input_shape : tuple
+            Shape of the input tensor.
 
         Returns
         -------
@@ -125,3 +165,67 @@ class LeakyReLU(Layer):
             Output shape, identical to input shape.
         """
         return input_shape
+
+    def get_config(self):
+        """
+        Returns the configuration of the layer.
+
+        Returns
+        -------
+        dict
+            Configuration dictionary.
+        """
+        config = super(LeakyReLUTF, self).get_config()
+        config.update({'negative_slope': self.negative_slope})
+        return config
+
+
+class LeakyReLUPyTorch(nn.Module):
+    """PyTorch implementation of LeakyReLU."""
+
+    def __init__(self, negative_slope=0.2, **kwargs):
+        """
+        Initializes the Leaky ReLU activation function layer for PyTorch.
+
+        Parameters
+        ----------
+        negative_slope : float
+            Slope for negative values (default is 0.2).
+        **kwargs
+            Additional keyword arguments.
+        """
+        super(LeakyReLUPyTorch, self).__init__()
+        self.negative_slope = negative_slope
+
+    def forward(self, neural_network_flow):
+        """
+        Applies the Leaky ReLU activation function to the input tensor.
+
+        Parameters
+        ----------
+        neural_network_flow : torch.Tensor
+            Input tensor with any shape.
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor with the same shape as input, after applying Leaky ReLU transformation.
+        """
+        return F.leaky_relu(neural_network_flow, negative_slope=self.negative_slope)
+
+    def extra_repr(self):
+        """
+        Returns a string representation of the layer parameters.
+
+        Returns
+        -------
+        str
+            String representation showing negative_slope parameter.
+        """
+        return f'negative_slope={self.negative_slope}'
+
+
+# Convenience function to get current framework
+def get_framework():
+    """Returns the currently active framework ('tensorflow' or 'pytorch')."""
+    return FRAMEWORK
