@@ -8,7 +8,6 @@ __initial_data__ = '2022/06/01'
 __last_update__ = '2025/03/29'
 __credits__ = ['Kayuã Oleques']
 
-
 # MIT License
 #
 # Copyright (c) 2025 Synthetic Ocean AI
@@ -37,6 +36,7 @@ try:
     import sys
     import json
     import numpy
+    import logging
     from typing import Any
 
 except ImportError as error:
@@ -44,11 +44,77 @@ except ImportError as error:
     sys.exit(-1)
 
 
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
+
+
 class LatentDiffusionAlgorithm:
     """
-    A framework-agnostic implementation of a diffusion process using UNet architectures 
+    A framework-agnostic implementation of a diffusion process using UNet architectures
     for generating synthetic data. Supports both TensorFlow and PyTorch.
-    
+
     This model integrates an autoencoder and a diffusion network, enabling both data
     reconstruction and controlled generative modeling through Gaussian diffusion.
 
@@ -89,9 +155,10 @@ class LatentDiffusionAlgorithm:
         Available at: https://arxiv.org/abs/2006.11239
 
     Example:
-        >>> # TensorFlow example
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
         >>> diffusion_model = LatentDiffusionAlgorithm(
-        ...     framework='tensorflow',
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
         ...     first_unet_model=primary_unet,
         ...     second_unet_model=ema_unet,
         ...     encoder_model_image=encoder,
@@ -105,8 +172,8 @@ class LatentDiffusionAlgorithm:
         ...     embedding_dimension=128,
         ...     train_stage='all'
         ... )
-        
-        >>> # PyTorch example
+
+        >>> # Or explicitly specify framework (overrides environment variable)
         >>> diffusion_model = LatentDiffusionAlgorithm(
         ...     framework='pytorch',
         ...     first_unet_model=primary_unet,
@@ -124,26 +191,27 @@ class LatentDiffusionAlgorithm:
         ... )
     """
 
-    def __init__(self, 
-                 framework,
-                 first_unet_model,
-                 second_unet_model,
-                 encoder_model_image,
-                 decoder_model_image,
-                 gdf_util,
-                 optimizer_autoencoder,
-                 optimizer_diffusion,
-                 time_steps,
-                 ema,
-                 margin,
-                 embedding_dimension,
+    def __init__(self,
+                 framework=None,
+                 first_unet_model=None,
+                 second_unet_model=None,
+                 encoder_model_image=None,
+                 decoder_model_image=None,
+                 gdf_util=None,
+                 optimizer_autoencoder=None,
+                 optimizer_diffusion=None,
+                 time_steps=1000,
+                 ema=0.999,
+                 margin=0.1,
+                 embedding_dimension=128,
                  train_stage='all'):
         """
         Initializes the LatentDiffusionAlgorithm with provided sub-models, optimizers, and hyperparameters.
 
         Args:
-            @framework (str):
-                Framework to use: 'tensorflow' or 'pytorch'.
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
             @first_unet_model (Model):
                 Primary UNet model for diffusion-based generation.
             @second_unet_model (Model):
@@ -176,16 +244,21 @@ class LatentDiffusionAlgorithm:
                 If ema is not within the (0,1) range.
                 If embedding_dimension is <= 0.
         """
-        
+
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
+
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
-            
+
         if not isinstance(time_steps, int) or time_steps <= 0:
             raise ValueError("time_steps must be a positive integer.")
-            
+
         if not isinstance(ema, (int, float)) or not (0 < ema < 1):
             raise ValueError("ema must be a float between 0 and 1.")
-            
+
         if not isinstance(embedding_dimension, int) or embedding_dimension <= 0:
             raise ValueError("embedding_dimension must be a positive integer.")
 
@@ -208,19 +281,26 @@ class LatentDiffusionAlgorithm:
             import tensorflow as tf
             self.tf = tf
             self._device = None  # TensorFlow handles device placement automatically
-            
+            logging.info("Initialized LatentDiffusionAlgorithm with TensorFlow backend")
+
         else:  # pytorch
             import torch
             import torch.nn as nn
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            
-            # Move models to device
-            self._network.to(self._device)
-            self._second_unet_model.to(self._device)
-            self._encoder_model_data.to(self._device)
-            self._decoder_model_data.to(self._device)
+
+            # Move models to device if they are not None
+            if self._network is not None:
+                self._network.to(self._device)
+            if self._second_unet_model is not None:
+                self._second_unet_model.to(self._device)
+            if self._encoder_model_data is not None:
+                self._encoder_model_data.to(self._device)
+            if self._decoder_model_data is not None:
+                self._decoder_model_data.to(self._device)
+
+            logging.info(f"Initialized LatentDiffusionAlgorithm with PyTorch backend on device: {self._device}")
 
     def set_stage_training(self, training_stage):
         """
@@ -303,7 +383,7 @@ class LatentDiffusionAlgorithm:
         """PyTorch implementation of train_diffusion_model."""
         data = data.to(self._device)
         ground_truth = ground_truth.to(self._device)
-        
+
         embedding_label = ground_truth
         embedding_data_expanded = data
         batch_size = data.shape[0]
@@ -317,7 +397,7 @@ class LatentDiffusionAlgorithm:
         )
 
         self._optimizer_diffusion.zero_grad()
-        
+
         random_noise = self.torch.randn_like(embedding_data_expanded)
 
         embedding_with_noise = self._gdf_util.q_sample(
@@ -415,11 +495,11 @@ class LatentDiffusionAlgorithm:
         """PyTorch implementation of generate_data."""
         self._network.eval()
         self._decoder_model_data.eval()
-        
+
         with self.torch.no_grad():
             if isinstance(labels, numpy.ndarray):
                 labels = self.torch.tensor(labels, dtype=self.torch.float32, device=self._device)
-            
+
             embedding_diffusion = self.torch.randn(
                 labels.shape[0],
                 self._embedding_dimension,
@@ -455,7 +535,7 @@ class LatentDiffusionAlgorithm:
 
         self._network.train()
         self._decoder_model_data.train()
-        
+
         return generated_data.cpu().numpy()
 
     @staticmethod
@@ -524,9 +604,10 @@ class LatentDiffusionAlgorithm:
     def _padding_input_tensor_pytorch(self, input_tensor):
         """PyTorch implementation of _padding_input_tensor."""
         input_tensor = input_tensor.float()
-        
+
         # Determine target dimension from network input
-        target_dimension = self._network.input_shape[-2] if hasattr(self._network, 'input_shape') else input_tensor.shape[-2]
+        target_dimension = self._network.input_shape[-2] if hasattr(self._network, 'input_shape') else \
+        input_tensor.shape[-2]
         current_dimension = input_tensor.shape[-2]
         padding_needed = max(0, target_dimension - current_dimension)
 
@@ -537,7 +618,7 @@ class LatentDiffusionAlgorithm:
         # We want to pad the second-to-last dimension
         pad = (0, 0, 0, padding_needed)  # (channels, feature_dim)
         padded_tensor = self.nn.functional.pad(input_tensor, pad, mode='constant', value=0)
-        
+
         return padded_tensor
 
     def get_samples(self, number_samples_per_class):
@@ -563,7 +644,7 @@ class LatentDiffusionAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
 
         for label_class, number_instances in number_samples_per_class["classes"].items():
@@ -639,6 +720,8 @@ class LatentDiffusionAlgorithm:
         self._save_model_to_json(self._second_unet_model, f"{second_unet_file_name}.json")
         self._second_unet_model.save_weights(f"{second_unet_file_name}.weights.h5")
 
+        logging.info(f"Models saved to {directory}")
+
     def _save_model_pytorch(self, directory, file_name):
         """PyTorch implementation of save_model."""
         if not os.path.exists(directory):
@@ -654,6 +737,8 @@ class LatentDiffusionAlgorithm:
         self.torch.save(self._network.state_dict(), first_unet_file)
         self.torch.save(self._second_unet_model.state_dict(), second_unet_file)
 
+        logging.info(f"Models saved to {directory}")
+
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
@@ -666,12 +751,12 @@ class LatentDiffusionAlgorithm:
         try:
             with open(file_path, "w") as json_file:
                 json.dump(model.to_json(), json_file)
-            print(f"Model successfully saved to {file_path}.")
+            logging.info(f"Model successfully saved to {file_path}.")
         except Exception as e:
             error_message = f"Error occurred while saving model: {str(e)}"
             with open(file_path, "w") as error_file:
                 error_file.write(error_message)
-            print(f"An error occurred and was saved to {file_path}: {error_message}")
+            logging.error(f"An error occurred and was saved to {file_path}: {error_message}")
 
     @property
     def framework(self) -> str:
@@ -791,3 +876,25 @@ class LatentDiffusionAlgorithm:
     def decoder_model_data(self, value: Any) -> None:
         """Set the decoder model."""
         self._decoder_model_data = value
+        if self._framework == 'pytorch':
+            self._decoder_model_data.to(self._device)
+
+    @property
+    def optimizer_diffusion(self) -> Any:
+        """Get the diffusion optimizer."""
+        return self._optimizer_diffusion
+
+    @optimizer_diffusion.setter
+    def optimizer_diffusion(self, value: Any) -> None:
+        """Set the diffusion optimizer."""
+        self._optimizer_diffusion = value
+
+    @property
+    def optimizer_autoencoder(self) -> Any:
+        """Get the autoencoder optimizer."""
+        return self._optimizer_autoencoder
+
+    @optimizer_autoencoder.setter
+    def optimizer_autoencoder(self, value: Any) -> None:
+        """Set the autoencoder optimizer."""
+        self._optimizer_autoencoder = value

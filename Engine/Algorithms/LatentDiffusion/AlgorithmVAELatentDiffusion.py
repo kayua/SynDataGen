@@ -36,10 +36,77 @@ try:
     import sys
     import json
     import numpy
+    import logging
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
+
+
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
 
 
 class VAELatentDiffusionAlgorithm:
@@ -85,9 +152,10 @@ class VAELatentDiffusionAlgorithm:
             Directory path where the encoder and decoder models are saved.
 
     Example:
-        >>> # TensorFlow example
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
         >>> vae_model = VAELatentDiffusionAlgorithm(
-        ...     framework='tensorflow',
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
         ...     encoder_model=encoder,
         ...     decoder_model=decoder,
         ...     loss_function=custom_loss_function,
@@ -99,8 +167,8 @@ class VAELatentDiffusionAlgorithm:
         ...     file_name_decoder="decoder_model.h5",
         ...     models_saved_path="models/"
         ... )
-        
-        >>> # PyTorch example
+
+        >>> # Or explicitly specify framework (overrides environment variable)
         >>> vae_model = VAELatentDiffusionAlgorithm(
         ...     framework='pytorch',
         ...     encoder_model=encoder,
@@ -117,24 +185,25 @@ class VAELatentDiffusionAlgorithm:
     """
 
     def __init__(self,
-                 framework,
-                 encoder_model,
-                 decoder_model,
-                 loss_function,
-                 latent_dimension,
-                 decoder_latent_dimension,
-                 latent_mean_distribution,
-                 latent_stander_deviation,
-                 file_name_encoder,
-                 file_name_decoder,
-                 models_saved_path):
+                 framework=None,
+                 encoder_model=None,
+                 decoder_model=None,
+                 loss_function=None,
+                 latent_dimension=128,
+                 decoder_latent_dimension=128,
+                 latent_mean_distribution=0.0,
+                 latent_stander_deviation=1.0,
+                 file_name_encoder="encoder_model",
+                 file_name_decoder="decoder_model",
+                 models_saved_path="models/"):
         """
-        Initializes the VAELatentDiffusionAlgorithm model with provided encoder and decoder models, 
+        Initializes the VAELatentDiffusionAlgorithm model with provided encoder and decoder models,
         loss function, and latent space parameters.
 
         Args:
-            @framework (str):
-                Framework to use: 'tensorflow' or 'pytorch'.
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
             @encoder_model (Model):
                 The encoder model responsible for encoding input data into latent variables.
             @decoder_model (Model):
@@ -163,7 +232,12 @@ class VAELatentDiffusionAlgorithm:
                 If latent_stander_deviation <= 0.
                 If file paths are invalid.
         """
-        
+
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
+
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
 
@@ -202,27 +276,33 @@ class VAELatentDiffusionAlgorithm:
         if self._framework == 'tensorflow':
             import tensorflow as tf
             from tensorflow.keras.metrics import Mean
-            
+
             self.tf = tf
             self._total_loss_tracker = Mean(name="loss")
             self._reconstruction_loss_tracker = Mean(name="reconstruction_loss")
             self._kl_loss_tracker = Mean(name="kl_loss")
-            
+            logging.info("Initialized VAELatentDiffusionAlgorithm with TensorFlow backend")
+
         else:  # pytorch
             import torch
             import torch.nn as nn
-            
+
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self._encoder.to(self._device)
-            self._decoder.to(self._device)
-            
+
+            if self._encoder is not None:
+                self._encoder.to(self._device)
+            if self._decoder is not None:
+                self._decoder.to(self._device)
+
             # PyTorch metrics tracking
             self._total_loss = 0.0
             self._reconstruction_loss = 0.0
             self._kl_loss = 0.0
             self._num_batches = 0
+
+            logging.info(f"Initialized VAELatentDiffusionAlgorithm with PyTorch backend on device: {self._device}")
 
     def compile(self, optimizer, *args, **kwargs):
         """
@@ -271,13 +351,13 @@ class VAELatentDiffusionAlgorithm:
             loss_model_in_reconstruction = reconstruction_loss + kl_divergence_loss
 
         # Compute gradients and update
-        gradient_update = tape.gradient(loss_model_in_reconstruction, 
-                                       list(self._encoder.trainable_variables) + 
-                                       list(self._decoder.trainable_variables))
-        
+        gradient_update = tape.gradient(loss_model_in_reconstruction,
+                                        list(self._encoder.trainable_variables) +
+                                        list(self._decoder.trainable_variables))
+
         trainable_vars = list(self._encoder.trainable_variables) + list(self._decoder.trainable_variables)
         self.optimizer.apply_gradients(zip(gradient_update, trainable_vars))
-        
+
         # Update metrics
         self._total_loss_tracker.update_state(loss_model_in_reconstruction)
         self._reconstruction_loss_tracker.update_state(reconstruction_loss)
@@ -347,19 +427,19 @@ class VAELatentDiffusionAlgorithm:
                 self._reconstruction_loss = 0.0
                 self._kl_loss = 0.0
                 self._num_batches = 0
-            
+
             epoch_losses = []
-            
+
             for batch in train_dataset:
                 loss_dict = self.train_step(batch)
                 epoch_losses.append(loss_dict)
-            
+
             if verbose:
-                avg_loss = numpy.mean([l['loss'] for l in epoch_losses])
-                avg_recon = numpy.mean([l['reconstruction_loss'] for l in epoch_losses])
-                avg_kl = numpy.mean([l['kl_loss'] for l in epoch_losses])
-                print(f"Epoch {epoch+1}/{epochs} - loss: {avg_loss:.4f} - "
-                      f"reconstruction_loss: {avg_recon:.4f} - kl_loss: {avg_kl:.4f}")
+                avg_loss = numpy.mean([float(l['loss']) for l in epoch_losses])
+                avg_recon = numpy.mean([float(l['reconstruction_loss']) for l in epoch_losses])
+                avg_kl = numpy.mean([float(l['kl_loss']) for l in epoch_losses])
+                logging.info(f"Epoch {epoch + 1}/{epochs} - loss: {avg_loss:.4f} - "
+                             f"reconstruction_loss: {avg_recon:.4f} - kl_loss: {avg_kl:.4f}")
 
     def get_decoder_trained(self):
         """Returns the trained decoder model."""
@@ -415,7 +495,7 @@ class VAELatentDiffusionAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
 
         for label_class, number_instances in number_samples_per_class["classes"].items():
@@ -500,7 +580,7 @@ class VAELatentDiffusionAlgorithm:
     def _generate_synthetic_data_pytorch(self, number_samples_generate, labels, latent_dimension):
         """PyTorch implementation of generate_synthetic_data."""
         self._decoder.eval()
-        
+
         with self.torch.no_grad():
             random_noise_generate = self.torch.randn(
                 number_samples_generate,
@@ -516,7 +596,7 @@ class VAELatentDiffusionAlgorithm:
             )
 
             synthetic_data = self._decoder(random_noise_generate, label_list)
-        
+
         self._decoder.train()
         return synthetic_data.cpu().numpy()
 
@@ -555,6 +635,8 @@ class VAELatentDiffusionAlgorithm:
         self._save_model_to_json(self._decoder, f"{decoder_file_name}.json")
         self._decoder.save_weights(f"{decoder_file_name}.weights.h5")
 
+        logging.info(f"Models saved to {directory}")
+
     def _save_model_pytorch(self, directory, file_name):
         """PyTorch implementation of save_model."""
         if not os.path.exists(directory):
@@ -572,6 +654,8 @@ class VAELatentDiffusionAlgorithm:
             'model_state_dict': self._decoder.state_dict()
         }, decoder_file_name)
 
+        logging.info(f"Models saved to {directory}")
+
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
@@ -581,8 +665,12 @@ class VAELatentDiffusionAlgorithm:
             model: Model to save.
             file_path (str): Path to the JSON file.
         """
-        with open(file_path, "w") as json_file:
-            json.dump(model.to_json(), json_file)
+        try:
+            with open(file_path, "w") as json_file:
+                json.dump(model.to_json(), json_file)
+            logging.info(f"Model architecture saved to {file_path}")
+        except Exception as e:
+            logging.error(f"Error saving model to JSON: {e}")
 
     def load_models(self, directory, file_name):
         """
@@ -600,7 +688,7 @@ class VAELatentDiffusionAlgorithm:
     def _load_models_tensorflow(self, directory, file_name):
         """TensorFlow implementation of load_models."""
         from tensorflow.keras.models import model_from_json
-        
+
         encoder_file_name = f"{file_name}_encoder"
         decoder_file_name = f"{file_name}_decoder"
 
@@ -617,6 +705,8 @@ class VAELatentDiffusionAlgorithm:
             self._decoder = model_from_json(decoder_json)
             self._decoder.load_weights(f"{decoder_path}.weights.h5")
 
+        logging.info(f"Models loaded from {directory}")
+
     def _load_models_pytorch(self, directory, file_name):
         """PyTorch implementation of load_models."""
         encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
@@ -629,6 +719,8 @@ class VAELatentDiffusionAlgorithm:
 
         decoder_checkpoint = self.torch.load(decoder_file_name, map_location=self._device)
         self._decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+
+        logging.info(f"Models loaded from {directory}")
 
     @property
     def framework(self):
