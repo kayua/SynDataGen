@@ -8,7 +8,6 @@ __initial_data__ = '2022/06/01'
 __last_update__ = '2025/03/29'
 __credits__ = ['Kayuã Oleques']
 
-
 # MIT License
 #
 # Copyright (c) 2025 Synthetic Ocean AI
@@ -36,10 +35,77 @@ try:
     import sys
     import json
     import numpy
+    import logging
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
+
+
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
 
 
 class WassersteinAlgorithm:
@@ -73,8 +139,9 @@ class WassersteinAlgorithm:
     Available at: http://proceedings.mlr.press/v70/arjovsky17a.html
 
     Args:
-        @framework (str):
-            Framework to use: 'tensorflow' or 'pytorch'.
+        @framework (str or None):
+            Framework to use: 'tensorflow', 'pytorch', or None.
+            If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
         @generator_model (Model):
             The generator model.
         @discriminator_model (Model):
@@ -101,38 +168,75 @@ class WassersteinAlgorithm:
             Number of discriminator training steps per generator step.
         @clip_value (float):
             Value for weight clipping (default: 0.01).
+
+    Example:
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
+        >>> wgan = WassersteinAlgorithm(
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
+        ...     generator_model=generator,
+        ...     discriminator_model=discriminator,
+        ...     latent_dimension=100,
+        ...     generator_loss_fn=generator_loss,
+        ...     discriminator_loss_fn=discriminator_loss,
+        ...     file_name_discriminator='discriminator.h5',
+        ...     file_name_generator='generator.h5',
+        ...     models_saved_path='./models/',
+        ...     latent_mean_distribution=0.0,
+        ...     latent_standard_deviation=1.0,
+        ...     smoothing_rate=0.1,
+        ...     discriminator_steps=5,
+        ...     clip_value=0.01
+        ... )
     """
 
     def __init__(self,
-                 framework,
-                 generator_model,
-                 discriminator_model,
-                 latent_dimension,
-                 generator_loss_fn,
-                 discriminator_loss_fn,
-                 file_name_discriminator,
-                 file_name_generator,
-                 models_saved_path,
-                 latent_mean_distribution,
-                 latent_standard_deviation,
-                 smoothing_rate,
-                 discriminator_steps,
+                 framework=None,
+                 generator_model=None,
+                 discriminator_model=None,
+                 latent_dimension=100,
+                 generator_loss_fn=None,
+                 discriminator_loss_fn=None,
+                 file_name_discriminator="discriminator_model",
+                 file_name_generator="generator_model",
+                 models_saved_path="./models/",
+                 latent_mean_distribution=0.0,
+                 latent_standard_deviation=1.0,
+                 smoothing_rate=0.1,
+                 discriminator_steps=5,
                  clip_value=0.01):
-        
+        """
+        Initializes the WassersteinAlgorithm with provided models and parameters.
+
+        Args:
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
+            [Other parameters as documented in class docstring]
+        """
+
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
+
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
-        
+
         if not isinstance(latent_dimension, int) or latent_dimension <= 0:
             raise ValueError("Latent dimension must be a positive integer")
-        
+
         if not isinstance(discriminator_steps, int) or discriminator_steps <= 0:
             raise ValueError("Discriminator steps must be a positive integer")
-        
+
         if not 0 <= smoothing_rate <= 1:
             raise ValueError("Smoothing rate must be between 0 and 1")
-        
+
         if latent_standard_deviation <= 0:
             raise ValueError("Standard deviation must be positive")
+
+        if clip_value <= 0:
+            raise ValueError("Clip value must be positive")
 
         self._framework = framework
         self._generator = generator_model
@@ -155,19 +259,26 @@ class WassersteinAlgorithm:
         if self._framework == 'tensorflow':
             import tensorflow as tf
             self.tf = tf
-            
+            logging.info("Initialized WassersteinAlgorithm with TensorFlow backend")
+
         else:  # pytorch
             import torch
             import torch.nn as nn
-            
+
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self._generator.to(self._device)
-            self._discriminator.to(self._device)
+
+            if self._generator is not None:
+                self._generator.to(self._device)
+            if self._discriminator is not None:
+                self._discriminator.to(self._device)
+
             self._d_loss_total = 0.0
             self._g_loss_total = 0.0
             self._num_batches = 0
+
+            logging.info(f"Initialized WassersteinAlgorithm with PyTorch backend on device: {self._device}")
 
     def compile(self, optimizer_generator, optimizer_discriminator,
                 loss_generator=None, loss_discriminator=None):
@@ -182,7 +293,7 @@ class WassersteinAlgorithm:
         """
         self._generator_optimizer = optimizer_generator
         self._discriminator_optimizer = optimizer_discriminator
-        
+
         if loss_generator is not None:
             self._generator_loss_fn = loss_generator
         if loss_discriminator is not None:
@@ -251,7 +362,11 @@ class WassersteinAlgorithm:
         """PyTorch implementation of train_step."""
         real_feature, real_samples_label = batch
         real_feature = real_feature.to(self._device)
-        real_samples_label = real_samples_label.to(self._device).unsqueeze(-1)
+        real_samples_label = real_samples_label.to(self._device)
+
+        if real_samples_label.dim() == 1:
+            real_samples_label = real_samples_label.unsqueeze(-1)
+
         batch_size = real_feature.shape[0]
 
         # === Critic (Discriminator) Training ===
@@ -262,10 +377,10 @@ class WassersteinAlgorithm:
             ) * self._latent_standard_deviation + self._latent_mean_distribution
 
             self._discriminator_optimizer.zero_grad()
-            
+
             with self.torch.no_grad():
                 fake_feature = self._generator(latent_space, real_samples_label)
-            
+
             real_output = self._discriminator(real_feature, real_samples_label)
             fake_output = self._discriminator(fake_feature, real_samples_label)
             d_loss = self._discriminator_loss_fn(real_output, fake_output)
@@ -284,14 +399,14 @@ class WassersteinAlgorithm:
         ) * self._latent_standard_deviation + self._latent_mean_distribution
 
         self._generator_optimizer.zero_grad()
-        
+
         fake_feature = self._generator(latent_space, real_samples_label)
-        
+
         with self.torch.no_grad():
             self._discriminator.eval()
         fake_output = self._discriminator(fake_feature, real_samples_label)
         self._discriminator.train()
-        
+
         g_loss = self._generator_loss_fn(fake_output)
 
         g_loss.backward()
@@ -320,19 +435,19 @@ class WassersteinAlgorithm:
                 self._d_loss_total = 0.0
                 self._g_loss_total = 0.0
                 self._num_batches = 0
-            
+
             epoch_d_losses = []
             epoch_g_losses = []
-            
+
             for batch in train_dataset:
                 loss_dict = self.train_step(batch)
                 epoch_d_losses.append(loss_dict['d_loss'])
                 epoch_g_losses.append(loss_dict['g_loss'])
-            
+
             if verbose:
                 avg_d_loss = numpy.mean([float(l) for l in epoch_d_losses])
                 avg_g_loss = numpy.mean([float(l) for l in epoch_g_losses])
-                print(f"Epoch {epoch+1}/{epochs} - d_loss: {avg_d_loss:.4f} - g_loss: {avg_g_loss:.4f}")
+                logging.info(f"Epoch {epoch + 1}/{epochs} - d_loss: {avg_d_loss:.4f} - g_loss: {avg_g_loss:.4f}")
 
     def get_samples(self, number_samples_per_class):
         """
@@ -354,7 +469,7 @@ class WassersteinAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
 
         for label_class, number_instances in number_samples_per_class["classes"].items():
@@ -429,6 +544,8 @@ class WassersteinAlgorithm:
         self._save_model_to_json(self._discriminator, f"{discriminator_file_name}.json")
         self._discriminator.save_weights(f"{discriminator_file_name}.weights.h5")
 
+        logging.info(f"Models saved to {directory}")
+
     def _save_model_pytorch(self, directory, file_name):
         """PyTorch implementation of save_model."""
         if not os.path.exists(directory):
@@ -447,6 +564,8 @@ class WassersteinAlgorithm:
             'optimizer_state_dict': self._discriminator_optimizer.state_dict() if self._discriminator_optimizer else None
         }, discriminator_file_name)
 
+        logging.info(f"Models saved to {directory}")
+
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
@@ -456,8 +575,12 @@ class WassersteinAlgorithm:
             model (Model): Model to save.
             file_path (str): Path to the JSON file.
         """
-        with open(file_path, "w") as json_file:
-            json.dump(model.to_json(), json_file)
+        try:
+            with open(file_path, "w") as json_file:
+                json.dump(model.to_json(), json_file)
+            logging.info(f"Model architecture saved to {file_path}")
+        except Exception as e:
+            logging.error(f"Error saving model to JSON: {e}")
 
     def load_models(self, directory, file_name):
         """
@@ -475,7 +598,7 @@ class WassersteinAlgorithm:
     def _load_models_tensorflow(self, directory, file_name):
         """TensorFlow implementation of load_models."""
         from tensorflow.keras.models import model_from_json
-        
+
         generator_file_name = f"{file_name}_generator"
         discriminator_file_name = f"{file_name}_discriminator"
 
@@ -492,6 +615,8 @@ class WassersteinAlgorithm:
             self._discriminator = model_from_json(discriminator_json)
             self._discriminator.load_weights(f"{discriminator_path}.weights.h5")
 
+        logging.info(f"Models loaded from {directory}")
+
     def _load_models_pytorch(self, directory, file_name):
         """PyTorch implementation of load_models."""
         generator_file_name = os.path.join(directory, f"fold_{file_name}_generator.pt")
@@ -507,7 +632,14 @@ class WassersteinAlgorithm:
         if self._discriminator_optimizer and discriminator_checkpoint.get('optimizer_state_dict'):
             self._discriminator_optimizer.load_state_dict(discriminator_checkpoint['optimizer_state_dict'])
 
-    # Properties for discriminator
+        logging.info(f"Models loaded from {directory}")
+
+    # Properties
+    @property
+    def framework(self):
+        """Get the framework being used."""
+        return self._framework
+
     @property
     def discriminator(self):
         return self._discriminator
@@ -518,7 +650,6 @@ class WassersteinAlgorithm:
         if self._framework == 'pytorch':
             self._discriminator.to(self._device)
 
-    # Properties for generator
     @property
     def generator(self):
         return self._generator
@@ -529,7 +660,6 @@ class WassersteinAlgorithm:
         if self._framework == 'pytorch':
             self._generator.to(self._device)
 
-    # Properties for latent dimension
     @property
     def latent_dimension(self):
         return self._latent_dimension
@@ -540,7 +670,6 @@ class WassersteinAlgorithm:
             raise ValueError("Latent dimension must be a positive integer")
         self._latent_dimension = value
 
-    # Properties for loss functions
     @property
     def discriminator_loss_fn(self):
         return self._discriminator_loss_fn
@@ -557,7 +686,6 @@ class WassersteinAlgorithm:
     def generator_loss_fn(self, value):
         self._generator_loss_fn = value
 
-    # Properties for smoothing and latent distribution
     @property
     def smooth_rate(self):
         return self._smooth_rate
@@ -586,7 +714,6 @@ class WassersteinAlgorithm:
             raise ValueError("Standard deviation must be positive")
         self._latent_standard_deviation = value
 
-    # Properties for file names and paths
     @property
     def file_name_discriminator(self):
         return self._file_name_discriminator
@@ -611,7 +738,6 @@ class WassersteinAlgorithm:
     def models_saved_path(self, value):
         self._models_saved_path = value
 
-    # Properties for training parameters
     @property
     def discriminator_steps(self):
         return self._discriminator_steps
@@ -631,3 +757,8 @@ class WassersteinAlgorithm:
         if value <= 0:
             raise ValueError("Clip value must be positive")
         self._clip_value = value
+
+    @property
+    def device(self):
+        """Get the device being used (PyTorch only)."""
+        return self._device if self._framework == 'pytorch' else None
