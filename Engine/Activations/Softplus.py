@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__author__ = 'Synthetic Ocean AI - Team'
-__email__ = 'syntheticoceanai@gmail.com'
+__author__ = 'Kayuã Oleques Paim'
+__email__ = 'kayuaolequesp@gmail.com'
 __version__ = '{1}.{0}.{1}'
 __initial_data__ = '2022/06/01'
 __last_update__ = '2025/10/29'
-__credits__ = ['Synthetic Ocean AI']
+__credits__ = ['Kayuã Oleques']
 
 # MIT License
 #
@@ -30,29 +30,61 @@ __credits__ = ['Synthetic Ocean AI']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import sys
 
-# Detect available framework
+# Get framework preference from environment variable
+FRAMEWORK_ENV = os.environ.get('ML_FRAMEWORK', '').lower()
+
 FRAMEWORK = None
-try:
-    import tensorflow as tf
-    from tensorflow.keras.layers import Layer as TFLayer
-    FRAMEWORK = 'tensorflow'
-except ImportError:
-    pass
 
-try:
-    import torch
-    import torch.nn as nn
-    import torch.nn.functional as F
+if FRAMEWORK_ENV:
+    # Try to load the specified framework
+    if FRAMEWORK_ENV == 'tensorflow':
+        try:
+            import tensorflow as tf
+            from tensorflow.keras.layers import Layer as TFLayer
+            FRAMEWORK = 'tensorflow'
+            print(f"Using framework from ML_FRAMEWORK: {FRAMEWORK}")
+        except ImportError:
+            print(f"Error: ML_FRAMEWORK set to '{FRAMEWORK_ENV}' but TensorFlow is not installed.")
+            sys.exit(-1)
+    elif FRAMEWORK_ENV == 'pytorch':
+        try:
+            import torch
+            import torch.nn as nn
+            FRAMEWORK = 'pytorch'
+            print(f"Using framework from ML_FRAMEWORK: {FRAMEWORK}")
+        except ImportError:
+            print(f"Error: ML_FRAMEWORK set to '{FRAMEWORK_ENV}' but PyTorch is not installed.")
+            sys.exit(-1)
+    else:
+        print(f"Error: Invalid ML_FRAMEWORK value '{FRAMEWORK_ENV}'. Valid options: 'tensorflow' or 'pytorch'.")
+        sys.exit(-1)
+else:
+    # Auto-detect available framework if no preference is set
+    try:
+        import tensorflow as tf
+        from tensorflow.keras.layers import Layer as TFLayer
+        FRAMEWORK = 'tensorflow'
+    except ImportError:
+        pass
+
+    try:
+        import torch
+        import torch.nn as nn
+        import torch.nn.functional as F
+        if FRAMEWORK is None:
+            FRAMEWORK = 'pytorch'
+    except ImportError:
+        pass
+
     if FRAMEWORK is None:
-        FRAMEWORK = 'pytorch'
-except ImportError:
-    pass
+        print("Error: Neither TensorFlow nor PyTorch is installed.")
+        sys.exit(-1)
+    else:
+        print(f"Auto-detected framework: {FRAMEWORK}")
 
-if FRAMEWORK is None:
-    print("Error: Neither TensorFlow nor PyTorch is installed.")
-    sys.exit(-1)
 
 
 class Softplus:
@@ -144,7 +176,8 @@ class SoftplusTF(TFLayer):
         """
         return tf.math.log(tf.math.exp(neural_network_flow) + 1.0)
 
-    def compute_output_shape(self, input_shape):
+    @staticmethod
+    def compute_output_shape(input_shape):
         """
         Computes the output shape, which remains the same as the input shape.
 
@@ -175,7 +208,8 @@ class SoftplusPyTorch(nn.Module):
         """
         super(SoftplusPyTorch, self).__init__()
 
-    def forward(self, neural_network_flow):
+    @staticmethod
+    def forward(neural_network_flow):
         """
         Applies the Softplus activation function to the input tensor.
 
@@ -191,7 +225,8 @@ class SoftplusPyTorch(nn.Module):
         """
         return F.softplus(neural_network_flow)
 
-    def extra_repr(self):
+    @staticmethod
+    def extra_repr():
         """
         Returns a string representation of the layer.
 

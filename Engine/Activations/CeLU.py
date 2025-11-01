@@ -30,28 +30,59 @@ __credits__ = ['Kayuã Oleques']
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import sys
 
-# Detect available framework
+# Get framework preference from environment variable
+FRAMEWORK_ENV = os.environ.get('ML_FRAMEWORK', '').lower()
+
 FRAMEWORK = None
-try:
-    import tensorflow as tf
-    from tensorflow.keras.layers import Layer as TFLayer
-    FRAMEWORK = 'tensorflow'
-except ImportError:
-    pass
 
-try:
-    import torch
-    import torch.nn as nn
+if FRAMEWORK_ENV:
+    # Try to load the specified framework
+    if FRAMEWORK_ENV == 'tensorflow':
+        try:
+            import tensorflow as tf
+            from tensorflow.keras.layers import Layer as TFLayer
+            FRAMEWORK = 'tensorflow'
+            print(f"Using framework from ML_FRAMEWORK: {FRAMEWORK}")
+        except ImportError:
+            print(f"Error: ML_FRAMEWORK set to '{FRAMEWORK_ENV}' but TensorFlow is not installed.")
+            sys.exit(-1)
+    elif FRAMEWORK_ENV == 'pytorch':
+        try:
+            import torch
+            import torch.nn as nn
+            FRAMEWORK = 'pytorch'
+            print(f"Using framework from ML_FRAMEWORK: {FRAMEWORK}")
+        except ImportError:
+            print(f"Error: ML_FRAMEWORK set to '{FRAMEWORK_ENV}' but PyTorch is not installed.")
+            sys.exit(-1)
+    else:
+        print(f"Error: Invalid ML_FRAMEWORK value '{FRAMEWORK_ENV}'. Valid options: 'tensorflow' or 'pytorch'.")
+        sys.exit(-1)
+else:
+    # Auto-detect available framework if no preference is set
+    try:
+        import tensorflow as tf
+        from tensorflow.keras.layers import Layer as TFLayer
+        FRAMEWORK = 'tensorflow'
+    except ImportError:
+        pass
+
+    try:
+        import torch
+        import torch.nn as nn
+        if FRAMEWORK is None:
+            FRAMEWORK = 'pytorch'
+    except ImportError:
+        pass
+
     if FRAMEWORK is None:
-        FRAMEWORK = 'pytorch'
-except ImportError:
-    pass
-
-if FRAMEWORK is None:
-    print("Error: Neither TensorFlow nor PyTorch is installed.")
-    sys.exit(-1)
+        print("Error: Neither TensorFlow nor PyTorch is installed.")
+        sys.exit(-1)
+    else:
+        print(f"Auto-detected framework: {FRAMEWORK}")
 
 
 class CeLU:

@@ -42,6 +42,72 @@ except ImportError as error:
     sys.exit(-1)
 
 
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
+
+
 class AdversarialAlgorithm:
     """
     Implements an adversarial training algorithm, typically used in Generative Adversarial Networks (GANs).
@@ -54,7 +120,8 @@ class AdversarialAlgorithm:
 
     Attributes:
         @framework (str):
-            Framework to use: 'tensorflow' or 'pytorch'.
+            Framework to use: 'tensorflow' or 'pytorch'. If None, uses the detected framework from
+            ML_FRAMEWORK environment variable or auto-detection.
         @generator_model (Model):
             The generator model.
         @discriminator_model (Model):
@@ -79,9 +146,10 @@ class AdversarialAlgorithm:
             Smoothing rate applied to discriminator labels.
 
     Example:
-        >>> # TensorFlow example
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
         >>> adversarial_algorithm = AdversarialAlgorithm(
-        ...     framework='tensorflow',
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
         ...     generator_model=generator_model,
         ...     discriminator_model=discriminator_model,
         ...     latent_dimension=100,
@@ -94,7 +162,7 @@ class AdversarialAlgorithm:
         ...     latent_stander_deviation=1.0,
         ...     smoothing_rate=0.1
         ... )
-        >>> # PyTorch example
+        >>> # Or explicitly specify framework (overrides environment variable)
         >>> adversarial_algorithm = AdversarialAlgorithm(
         ...     framework='pytorch',
         ...     generator_model=generator_model,
@@ -111,27 +179,28 @@ class AdversarialAlgorithm:
         ... )
     """
 
-    def __init__(self, 
-                 framework,
-                 generator_model,
-                 discriminator_model,
-                 latent_dimension,
-                 loss_generator,
-                 loss_discriminator,
-                 file_name_discriminator,
-                 file_name_generator,
-                 models_saved_path,
-                 latent_mean_distribution,
-                 latent_stander_deviation,
-                 smoothing_rate,
+    def __init__(self,
+                 framework=None,
+                 generator_model=None,
+                 discriminator_model=None,
+                 latent_dimension=100,
+                 loss_generator=None,
+                 loss_discriminator=None,
+                 file_name_discriminator="discriminator",
+                 file_name_generator="generator",
+                 models_saved_path="./models/",
+                 latent_mean_distribution=0.0,
+                 latent_stander_deviation=1.0,
+                 smoothing_rate=0.1,
                  *args,
                  **kwargs):
         """
         Initializes the adversarial algorithm with the specified generator, discriminator, and other configurations.
 
         Args:
-            @framework (str):
-                Framework to use: 'tensorflow' or 'pytorch'.
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
             @generator_model (Model):
                 The generator model.
             @discriminator_model (Model):
@@ -157,6 +226,11 @@ class AdversarialAlgorithm:
             @*args, **kwargs:
                 Additional arguments.
         """
+
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
 
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
@@ -204,14 +278,18 @@ class AdversarialAlgorithm:
         if self._framework == 'tensorflow':
             import tensorflow as tf
             self.tf = tf
+            logging.info("Initialized AdversarialAlgorithm with TensorFlow backend")
         else:  # pytorch
             import torch
             import torch.nn as nn
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self._generator.to(self._device)
-            self._discriminator.to(self._device)
+            if self._generator is not None:
+                self._generator.to(self._device)
+            if self._discriminator is not None:
+                self._discriminator.to(self._device)
+            logging.info(f"Initialized AdversarialAlgorithm with PyTorch backend on device: {self._device}")
 
     def compile(self, optimizer_generator, optimizer_discriminator, loss_generator, loss_discriminator, *args,
                 **kwargs):
@@ -294,15 +372,15 @@ class AdversarialAlgorithm:
         real_feature, real_samples_label = batch
         real_feature = real_feature.to(self._device)
         real_samples_label = real_samples_label.to(self._device)
-        
+
         batch_size = real_feature.shape[0]
-        
+
         if len(real_samples_label.shape) == 1:
             real_samples_label = real_samples_label.unsqueeze(-1)
 
         # Train Discriminator
         self._optimizer_discriminator.zero_grad()
-        
+
         latent_space = self.torch.randn(batch_size, self._latent_dimension, device=self._device)
         with self.torch.no_grad():
             synthetic_feature = self._generator(latent_space, real_samples_label)
@@ -326,11 +404,11 @@ class AdversarialAlgorithm:
 
         # Train Generator
         self._optimizer_generator.zero_grad()
-        
+
         latent_space = self.torch.randn(batch_size, self._latent_dimension, device=self._device)
         synthetic_feature = self._generator(latent_space, real_samples_label)
         predicted_labels = self._discriminator(synthetic_feature, real_samples_label)
-        
+
         total_loss_g = self._loss_generator(predicted_labels, self.torch.zeros_like(predicted_labels))
         total_loss_g.backward()
         self._optimizer_generator.step()
@@ -352,16 +430,16 @@ class AdversarialAlgorithm:
         for epoch in range(epochs):
             epoch_loss_d = []
             epoch_loss_g = []
-            
+
             for batch in train_dataset:
                 losses = self.train_step(batch)
                 epoch_loss_d.append(losses['loss_d'])
                 epoch_loss_g.append(losses['loss_g'])
-            
+
             if verbose:
                 avg_loss_d = numpy.mean(epoch_loss_d)
                 avg_loss_g = numpy.mean(epoch_loss_g)
-                logging.info(f"Epoch {epoch+1}/{epochs} - loss_d: {avg_loss_d:.4f} - loss_g: {avg_loss_g:.4f}")
+                logging.info(f"Epoch {epoch + 1}/{epochs} - loss_d: {avg_loss_d:.4f} - loss_g: {avg_loss_g:.4f}")
 
     def get_samples(self, number_samples_per_class):
         """
@@ -388,7 +466,7 @@ class AdversarialAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
 
         for label_class, number_instances in number_samples_per_class["classes"].items():
@@ -418,14 +496,14 @@ class AdversarialAlgorithm:
             for label_class, number_instances in number_samples_per_class["classes"].items():
                 # Create one-hot encoded labels
                 label_samples_generated = self.torch.zeros(
-                    number_instances, 
+                    number_instances,
                     number_samples_per_class["number_classes"],
                     device=self._device
                 )
                 label_samples_generated[:, label_class] = 1
 
                 latent_noise = self.torch.randn(
-                    number_instances, 
+                    number_instances,
                     self._latent_dimension,
                     device=self._device
                 ) * self._latent_stander_deviation + self._latent_mean_distribution
@@ -535,7 +613,7 @@ class AdversarialAlgorithm:
     def _load_models_tensorflow(self, path_output, k_fold):
         """TensorFlow implementation of load_models."""
         from tensorflow.keras.models import model_from_json
-        
+
         try:
             logging.info("Loading Adversarial Model for fold {}...".format(k_fold + 1))
 

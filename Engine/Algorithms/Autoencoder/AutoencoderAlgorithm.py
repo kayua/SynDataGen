@@ -35,10 +35,77 @@ try:
     import sys
     import json
     import numpy
+    import logging
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
+
+
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
 
 
 class AutoencoderAlgorithm:
@@ -49,8 +116,9 @@ class AutoencoderAlgorithm:
     generating synthetic data, saving and loading models.
 
     Args:
-        @framework (str):
-            Framework to use: 'tensorflow' or 'pytorch'.
+        @framework (str or None):
+            Framework to use: 'tensorflow', 'pytorch', or None.
+            If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
         @encoder_model (Model):
             The encoder part of the AutoEncoder.
         @decoder_model (Model):
@@ -91,9 +159,10 @@ class AutoencoderAlgorithm:
             Combined encoder-decoder model.
 
     Example:
-        >>> # TensorFlow example
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
         >>> autoencoder = AutoencoderAlgorithm(
-        ...     framework='tensorflow',
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
         ...     encoder_model=encoder_model,
         ...     decoder_model=decoder_model,
         ...     loss_function=tensorflow.keras.losses.MeanSquaredError(),
@@ -104,7 +173,7 @@ class AutoencoderAlgorithm:
         ...     latent_stander_deviation=1.0,
         ...     latent_dimension=64
         ... )
-        >>> # PyTorch example
+        >>> # Or explicitly specify framework (overrides environment variable)
         >>> autoencoder = AutoencoderAlgorithm(
         ...     framework='pytorch',
         ...     encoder_model=encoder_model,
@@ -120,22 +189,23 @@ class AutoencoderAlgorithm:
     """
 
     def __init__(self,
-                 framework,
-                 encoder_model,
-                 decoder_model,
-                 loss_function,
-                 file_name_encoder,
-                 file_name_decoder,
-                 models_saved_path,
-                 latent_mean_distribution,
-                 latent_stander_deviation,
-                 latent_dimension):
+                 framework=None,
+                 encoder_model=None,
+                 decoder_model=None,
+                 loss_function=None,
+                 file_name_encoder="encoder_model",
+                 file_name_decoder="decoder_model",
+                 models_saved_path="./autoencoder_models/",
+                 latent_mean_distribution=0.0,
+                 latent_stander_deviation=1.0,
+                 latent_dimension=64):
         """
         Initializes an AutoEncoder model with an encoder, decoder, and necessary configurations.
 
         Args:
-            @framework (str):
-                Framework to use: 'tensorflow' or 'pytorch'.
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
             @encoder_model (Model):
                 The encoder part of the AutoEncoder.
             @decoder_model (Model):
@@ -155,7 +225,12 @@ class AutoencoderAlgorithm:
             @latent_dimension (int):
                 The number of dimensions in the latent space.
         """
-        
+
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
+
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
 
@@ -197,36 +272,51 @@ class AutoencoderAlgorithm:
             import tensorflow as tf
             from tensorflow.keras.metrics import Mean
             from tensorflow.keras.models import Model
-            
+
             self.tf = tf
             self._total_loss_tracker = Mean(name="loss")
-            self._encoder_decoder_model = Model(self._encoder.input, self._decoder(self._encoder.output))
-            
+
+            if self._encoder is not None and self._decoder is not None:
+                self._encoder_decoder_model = Model(self._encoder.input, self._decoder(self._encoder.output))
+            else:
+                self._encoder_decoder_model = None
+
+            logging.info("Initialized AutoencoderAlgorithm with TensorFlow backend")
+
         else:  # pytorch
             import torch
             import torch.nn as nn
-            
+
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self._encoder.to(self._device)
-            self._decoder.to(self._device)
+
+            if self._encoder is not None:
+                self._encoder.to(self._device)
+            if self._decoder is not None:
+                self._decoder.to(self._device)
+
             self._total_loss = 0.0
             self._num_batches = 0
-            
-            # Create encoder-decoder model
-            class EncoderDecoder(nn.Module):
-                def __init__(self, encoder, decoder):
-                    super().__init__()
-                    self.encoder = encoder
-                    self.decoder = decoder
-                
-                def forward(self, x):
-                    encoded = self.encoder(x)
-                    decoded = self.decoder(encoded)
-                    return decoded
-            
-            self._encoder_decoder_model = EncoderDecoder(self._encoder, self._decoder).to(self._device)
+
+            # Create encoder-decoder model if both models are provided
+            if self._encoder is not None and self._decoder is not None:
+                class EncoderDecoder(nn.Module):
+                    def __init__(self, encoder, decoder):
+                        super().__init__()
+                        self.encoder = encoder
+                        self.decoder = decoder
+
+                    def forward(self, x):
+                        encoded = self.encoder(x)
+                        decoded = self.decoder(encoded)
+                        return decoded
+
+                self._encoder_decoder_model = EncoderDecoder(self._encoder, self._decoder).to(self._device)
+            else:
+                self._encoder_decoder_model = None
+
+            logging.info(f"Initialized AutoencoderAlgorithm with PyTorch backend on device: {self._device}")
 
     def compile(self, optimizer, *args, **kwargs):
         """
@@ -276,7 +366,7 @@ class AutoencoderAlgorithm:
         self.optimizer.zero_grad()
         reconstructed_data = self._encoder_decoder_model(batch_x)
         update_gradient_loss = self.torch.mean((batch_y - reconstructed_data) ** 2)
-        
+
         update_gradient_loss.backward()
         self.optimizer.step()
 
@@ -298,16 +388,16 @@ class AutoencoderAlgorithm:
             if self._framework == 'pytorch':
                 self._total_loss = 0.0
                 self._num_batches = 0
-                
+
             epoch_losses = []
-            
+
             for batch in train_dataset:
                 loss_dict = self.train_step(batch)
                 epoch_losses.append(loss_dict['loss'])
-            
+
             if verbose:
                 avg_loss = numpy.mean([float(l) for l in epoch_losses])
-                print(f"Epoch {epoch+1}/{epochs} - loss: {avg_loss:.4f}")
+                logging.info(f"Epoch {epoch + 1}/{epochs} - loss: {avg_loss:.4f}")
 
     def get_samples(self, number_samples_per_class):
         """
@@ -334,7 +424,7 @@ class AutoencoderAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
 
         for label_class, number_instances in number_samples_per_class["classes"].items():
@@ -409,6 +499,8 @@ class AutoencoderAlgorithm:
         self._save_model_to_json(self._decoder, f"{decoder_file_name}.json")
         self._decoder.save_weights(f"{decoder_file_name}.weights.h5")
 
+        logging.info(f"Models saved to {directory}")
+
     def _save_model_pytorch(self, directory, file_name):
         """PyTorch implementation of save_model."""
         if not os.path.exists(directory):
@@ -425,6 +517,8 @@ class AutoencoderAlgorithm:
         self.torch.save({
             'model_state_dict': self._decoder.state_dict()
         }, decoder_file_name)
+
+        logging.info(f"Models saved to {directory}")
 
     @staticmethod
     def _save_model_to_json(model, file_path):
@@ -454,7 +548,7 @@ class AutoencoderAlgorithm:
     def _load_models_tensorflow(self, directory, file_name):
         """TensorFlow implementation of load_models."""
         from tensorflow.keras.models import model_from_json
-        
+
         encoder_file_name = f"{file_name}_encoder"
         decoder_file_name = f"{file_name}_decoder"
 
@@ -471,6 +565,8 @@ class AutoencoderAlgorithm:
             self._decoder = model_from_json(decoder_json)
             self._decoder.load_weights(f"{decoder_path}.weights.h5")
 
+        logging.info(f"Models loaded from {directory}")
+
     def _load_models_pytorch(self, directory, file_name):
         """PyTorch implementation of load_models."""
         encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
@@ -483,6 +579,8 @@ class AutoencoderAlgorithm:
 
         decoder_checkpoint = self.torch.load(decoder_file_name, map_location=self._device)
         self._decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+
+        logging.info(f"Models loaded from {directory}")
 
     @property
     def decoder(self):

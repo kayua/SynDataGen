@@ -105,7 +105,8 @@ class LogSigmoid(Layer):
         """
         return tensorflow.math.log(1 / (1 + tensorflow.exp(-neural_network_flow)))
 
-    def compute_output_shape(self, input_shape):
+    @staticmethod
+    def compute_output_shape(input_shape):
         """
         Computes the output shape, which remains the same as the input shape.
 

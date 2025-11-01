@@ -153,7 +153,8 @@ class SwishTF(TFLayer):
         """
         return neural_network_flow * tf.nn.sigmoid(neural_network_flow)
 
-    def compute_output_shape(self, input_shape):
+    @staticmethod
+    def compute_output_shape(input_shape):
         """
         Computes the output shape, which remains the same as the input shape.
 
@@ -184,7 +185,8 @@ class SwishPyTorch(nn.Module):
         """
         super(SwishPyTorch, self).__init__()
 
-    def forward(self, neural_network_flow):
+    @staticmethod
+    def forward(neural_network_flow):
         """
         Applies the Swish activation function to the input tensor.
 
@@ -207,7 +209,8 @@ class SwishPyTorch(nn.Module):
         """
         return neural_network_flow * torch.sigmoid(neural_network_flow)
 
-    def extra_repr(self):
+    @staticmethod
+    def extra_repr():
         """
         Returns a string representation of the layer.
 
