@@ -35,18 +35,85 @@ try:
     import sys
     import json
     import numpy
+    import logging
 
 except ImportError as error:
     print(error)
     sys.exit(-1)
 
 
+# Framework detection based on environment variable
+def detect_framework():
+    """
+    Detects and validates the ML framework to use.
+
+    Priority:
+    1. ML_FRAMEWORK environment variable (if set)
+    2. Auto-detection (TensorFlow first, then PyTorch)
+
+    Returns:
+        str: The framework name ('tensorflow' or 'pytorch')
+
+    Raises:
+        SystemExit: If no framework is available or invalid framework specified
+    """
+    framework_env = os.environ.get('ML_FRAMEWORK', '').lower()
+
+    if framework_env:
+        # User specified a framework via environment variable
+        if framework_env == 'tensorflow':
+            try:
+                import tensorflow as tf
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: tensorflow")
+                return 'tensorflow'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'tensorflow' but TensorFlow is not installed.")
+                sys.exit(-1)
+        elif framework_env == 'pytorch':
+            try:
+                import torch
+                logging.info(f"Using framework from ML_FRAMEWORK environment variable: pytorch")
+                return 'pytorch'
+            except ImportError:
+                logging.error(f"ML_FRAMEWORK set to 'pytorch' but PyTorch is not installed.")
+                sys.exit(-1)
+        else:
+            logging.error(f"Invalid ML_FRAMEWORK value '{framework_env}'. Valid options: 'tensorflow' or 'pytorch'.")
+            sys.exit(-1)
+    else:
+        # Auto-detect available framework
+        framework = None
+        try:
+            import tensorflow as tf
+            framework = 'tensorflow'
+        except ImportError:
+            pass
+
+        if framework is None:
+            try:
+                import torch
+                framework = 'pytorch'
+            except ImportError:
+                pass
+
+        if framework is None:
+            logging.error("Neither TensorFlow nor PyTorch is installed. Please install one of them.")
+            sys.exit(-1)
+        else:
+            logging.info(f"Auto-detected framework: {framework}")
+            return framework
+
+
+# Detect framework at module load time
+DETECTED_FRAMEWORK = detect_framework()
+
+
 class QuantizedVAEAlgorithm:
     """
     Implements a Vector Quantized Variational Autoencoder (VQ-VAE) for discrete latent
     representation learning and generation supporting both TensorFlow and PyTorch.
-    
-    This model combines an encoder, decoder, and vector quantization layer to learn 
+
+    This model combines an encoder, decoder, and vector quantization layer to learn
     compressed representations of input data.
 
     The algorithm supports training with reconstruction loss and commitment loss for
@@ -85,9 +152,10 @@ class QuantizedVAEAlgorithm:
         Representation Learning." Advances in Neural Information Processing Systems (NeurIPS).
 
     Example:
-        >>> # TensorFlow example
+        >>> # Using environment variable
+        >>> # export ML_FRAMEWORK=tensorflow
         >>> vae = QuantizedVAEAlgorithm(
-        ...     framework='tensorflow',
+        ...     framework=None,  # Will use ML_FRAMEWORK or auto-detect
         ...     encoder_model=encoder,
         ...     decoder_model=decoder,
         ...     quantized_vae_model=vq_vae,
@@ -98,7 +166,7 @@ class QuantizedVAEAlgorithm:
         ...     file_name_decoder="decoder_weights.h5",
         ...     models_saved_path="./saved_models/"
         ... )
-        >>> # PyTorch example
+        >>> # Or explicitly specify framework (overrides environment variable)
         >>> vae = QuantizedVAEAlgorithm(
         ...     framework='pytorch',
         ...     encoder_model=encoder,
@@ -114,23 +182,24 @@ class QuantizedVAEAlgorithm:
     """
 
     def __init__(self,
-                 framework,
-                 encoder_model,
-                 decoder_model,
-                 quantized_vae_model,
-                 train_variance,
-                 latent_dimension,
-                 number_embeddings,
-                 file_name_encoder,
-                 file_name_decoder,
-                 models_saved_path,
+                 framework=None,
+                 encoder_model=None,
+                 decoder_model=None,
+                 quantized_vae_model=None,
+                 train_variance=0.1,
+                 latent_dimension=64,
+                 number_embeddings=512,
+                 file_name_encoder="encoder_weights",
+                 file_name_decoder="decoder_weights",
+                 models_saved_path="./saved_models/",
                  **kwargs):
         """
         Initializes the QuantizedVAEAlgorithm with encoder, decoder, and VQ-VAE components.
 
         Args:
-            @framework (str):
-                Framework to use: 'tensorflow' or 'pytorch'.
+            @framework (str or None):
+                Framework to use: 'tensorflow', 'pytorch', or None.
+                If None, uses the framework detected from ML_FRAMEWORK environment variable or auto-detection.
             @encoder_model (Model):
                 Encoder network that compresses input data to latent space.
             @decoder_model (Model):
@@ -160,6 +229,11 @@ class QuantizedVAEAlgorithm:
                 If train_variance <= 0.
         """
 
+        # Use detected framework if none specified
+        if framework is None:
+            framework = DETECTED_FRAMEWORK
+            logging.info(f"No framework specified, using detected framework: {framework}")
+
         if framework not in ['tensorflow', 'pytorch']:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'.")
 
@@ -188,28 +262,35 @@ class QuantizedVAEAlgorithm:
         if self._framework == 'tensorflow':
             import tensorflow as tf
             from tensorflow.keras.metrics import Mean
-            
+
             self.tf = tf
             self.total_loss_tracker = Mean(name="total_loss")
             self.reconstruction_loss_tracker = Mean(name="reconstruction_loss")
             self.vq_loss_tracker = Mean(name="vq_loss")
-            
+            logging.info("Initialized QuantizedVAEAlgorithm with TensorFlow backend")
+
         else:  # pytorch
             import torch
             import torch.nn as nn
-            
+
             self.torch = torch
             self.nn = nn
             self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self._encoder.to(self._device)
-            self._decoder.to(self._device)
-            self._quantized_vae_model.to(self._device)
-            
+
+            if self._encoder is not None:
+                self._encoder.to(self._device)
+            if self._decoder is not None:
+                self._decoder.to(self._device)
+            if self._quantized_vae_model is not None:
+                self._quantized_vae_model.to(self._device)
+
             # Manual loss tracking for PyTorch
             self._total_loss = 0.0
             self._reconstruction_loss = 0.0
             self._vq_loss = 0.0
             self._num_batches = 0
+
+            logging.info(f"Initialized QuantizedVAEAlgorithm with PyTorch backend on device: {self._device}")
 
     @property
     def metrics(self):
@@ -227,10 +308,10 @@ class QuantizedVAEAlgorithm:
                 def __init__(self, name, value):
                     self.name = name
                     self._value = value
-                
+
                 def result(self):
                     return self._value
-            
+
             return [
                 MetricTracker("total_loss", self._total_loss / max(self._num_batches, 1)),
                 MetricTracker("reconstruction_loss", self._reconstruction_loss / max(self._num_batches, 1)),
@@ -293,7 +374,7 @@ class QuantizedVAEAlgorithm:
     def _train_step_pytorch(self, data):
         """PyTorch implementation of train_step."""
         x, y = data
-        
+
         # Handle input tensor format
         if isinstance(x, (list, tuple)):
             output_tensor = x[0].to(self._device)
@@ -303,15 +384,15 @@ class QuantizedVAEAlgorithm:
             x = x.to(self._device)
 
         self.optimizer.zero_grad()
-        
+
         reconstructions = self._quantized_vae_model(x)
         reconstruction_loss = self.torch.mean((output_tensor - reconstructions) ** 2) / self._train_variance
-        
+
         # Get VQ losses (commitment loss and codebook loss)
         vq_loss = 0.0
         if hasattr(self._quantized_vae_model, 'vq_loss'):
             vq_loss = self._quantized_vae_model.vq_loss
-        
+
         vae_model_loss = reconstruction_loss + vq_loss
         vae_model_loss.backward()
         self.optimizer.step()
@@ -343,20 +424,20 @@ class QuantizedVAEAlgorithm:
                 self._reconstruction_loss = 0.0
                 self._vq_loss = 0.0
                 self._num_batches = 0
-            
+
             epoch_results = {'loss': [], 'reconstruction_loss': [], 'vqvae_loss': []}
-            
+
             for batch in train_dataset:
                 result = self.train_step(batch)
                 for key in epoch_results:
                     epoch_results[key].append(float(result[key]))
-            
+
             if verbose:
                 avg_loss = numpy.mean(epoch_results['loss'])
                 avg_recon = numpy.mean(epoch_results['reconstruction_loss'])
                 avg_vq = numpy.mean(epoch_results['vqvae_loss'])
-                print(f"Epoch {epoch+1}/{epochs} - loss: {avg_loss:.4f} - "
-                      f"reconstruction_loss: {avg_recon:.4f} - vqvae_loss: {avg_vq:.4f}")
+                logging.info(f"Epoch {epoch + 1}/{epochs} - loss: {avg_loss:.4f} - "
+                             f"reconstruction_loss: {avg_recon:.4f} - vqvae_loss: {avg_vq:.4f}")
 
     def get_samples(self, number_samples_per_class):
         """
@@ -386,7 +467,7 @@ class QuantizedVAEAlgorithm:
     def _get_samples_tensorflow(self, number_samples_per_class):
         """TensorFlow implementation of get_samples."""
         from tensorflow.keras.utils import to_categorical
-        
+
         generated_data = {}
         codebook = self._quantized_vae_model.get_layer("vector_quantizer").embeddings
         number_embeddings = self._number_embeddings
@@ -419,7 +500,7 @@ class QuantizedVAEAlgorithm:
                 if hasattr(module, 'embeddings') or hasattr(module, 'embedding'):
                     codebook = getattr(module, 'embeddings', getattr(module, 'embedding', None))
                     break
-        
+
         if codebook is None:
             raise ValueError("Could not find codebook embeddings in quantized_vae_model")
 
@@ -434,7 +515,7 @@ class QuantizedVAEAlgorithm:
 
                 sampled_indices = numpy.random.choice(self._number_embeddings, size=number_instances)
                 sampled_indices = self.torch.tensor(sampled_indices, device=self._device)
-                
+
                 if isinstance(codebook, self.torch.Tensor):
                     quantized_vectors = codebook[sampled_indices]
                 else:
@@ -474,6 +555,8 @@ class QuantizedVAEAlgorithm:
         self._save_model_to_json(self._decoder, f"{decoder_file_name}.json")
         self._decoder.save_weights(f"{decoder_file_name}.weights.h5")
 
+        logging.info(f"Models saved to {directory}")
+
     def _save_model_pytorch(self, directory, file_name):
         """PyTorch implementation of save_model."""
         if not os.path.exists(directory):
@@ -491,6 +574,8 @@ class QuantizedVAEAlgorithm:
             'model_state_dict': self._decoder.state_dict()
         }, decoder_file_name)
 
+        logging.info(f"Models saved to {directory}")
+
     @staticmethod
     def _save_model_to_json(model, file_path):
         """
@@ -500,8 +585,12 @@ class QuantizedVAEAlgorithm:
             model (Model): Model to save.
             file_path (str): Path to the JSON file.
         """
-        with open(file_path, "w") as json_file:
-            json.dump(model.to_json(), json_file)
+        try:
+            with open(file_path, "w") as json_file:
+                json.dump(model.to_json(), json_file)
+            logging.info(f"Model architecture saved to {file_path}")
+        except Exception as e:
+            logging.error(f"Error saving model to JSON: {e}")
 
     def load_models(self, directory, file_name):
         """
@@ -519,7 +608,7 @@ class QuantizedVAEAlgorithm:
     def _load_models_tensorflow(self, directory, file_name):
         """TensorFlow implementation of load_models."""
         from tensorflow.keras.models import model_from_json
-        
+
         encoder_file_name = f"{file_name}_encoder"
         decoder_file_name = f"{file_name}_decoder"
 
@@ -536,6 +625,8 @@ class QuantizedVAEAlgorithm:
             self._decoder = model_from_json(decoder_json)
             self._decoder.load_weights(f"{decoder_path}.weights.h5")
 
+        logging.info(f"Models loaded from {directory}")
+
     def _load_models_pytorch(self, directory, file_name):
         """PyTorch implementation of load_models."""
         encoder_file_name = os.path.join(directory, f"fold_{file_name}_encoder.pt")
@@ -548,6 +639,13 @@ class QuantizedVAEAlgorithm:
 
         decoder_checkpoint = self.torch.load(decoder_file_name, map_location=self._device)
         self._decoder.load_state_dict(decoder_checkpoint['model_state_dict'])
+
+        logging.info(f"Models loaded from {directory}")
+
+    @property
+    def framework(self):
+        """Get the framework being used."""
+        return self._framework
 
     @property
     def encoder(self):
@@ -568,3 +666,56 @@ class QuantizedVAEAlgorithm:
         self._decoder = decoder
         if self._framework == 'pytorch':
             self._decoder.to(self._device)
+
+    @property
+    def quantized_vae_model(self):
+        """Get the quantized VAE model."""
+        return self._quantized_vae_model
+
+    @quantized_vae_model.setter
+    def quantized_vae_model(self, model):
+        """Set the quantized VAE model."""
+        self._quantized_vae_model = model
+        if self._framework == 'pytorch':
+            self._quantized_vae_model.to(self._device)
+
+    @property
+    def device(self):
+        """Get the device being used (PyTorch only)."""
+        return self._device if self._framework == 'pytorch' else None
+
+    @property
+    def train_variance(self):
+        """Get the training variance."""
+        return self._train_variance
+
+    @train_variance.setter
+    def train_variance(self, value):
+        """Set the training variance."""
+        if value <= 0:
+            raise ValueError("train_variance must be greater than 0")
+        self._train_variance = value
+
+    @property
+    def latent_dimension(self):
+        """Get the latent dimension."""
+        return self._latent_dimension
+
+    @latent_dimension.setter
+    def latent_dimension(self, value):
+        """Set the latent dimension."""
+        if value <= 0:
+            raise ValueError("latent_dimension must be greater than 0")
+        self._latent_dimension = value
+
+    @property
+    def number_embeddings(self):
+        """Get the number of embeddings."""
+        return self._number_embeddings
+
+    @number_embeddings.setter
+    def number_embeddings(self, value):
+        """Set the number of embeddings."""
+        if value <= 0:
+            raise ValueError("number_embeddings must be greater than 0")
+        self._number_embeddings = value
